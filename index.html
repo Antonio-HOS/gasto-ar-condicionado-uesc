@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Consumo: Ar-Condicionado</title>
+    <!-- Fonte Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Biblioteca Chart.js para o gráfico interativo -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #0284c7; /* Azul padrão */
+            --primary-dark: #0369a1;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #334155;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h1, h2, h3 { color: #0f172a; }
+        h1 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 30px; }
+        h2 { margin-top: 40px; color: var(--primary-dark); }
+        
+        ul { margin-bottom: 20px; padding-left: 20px; }
+        li { margin-bottom: 8px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        th { background-color: #f1f5f9; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+
+        /* Estilos do Simulador */
+        .calculator-card {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .input-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .input-group label { font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+        .input-group input, .input-group select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .results {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .results h3 { color: white; margin: 0 0 10px 0; font-size: 1.2rem; }
+        .results .price { font-size: 2.5rem; font-weight: 700; margin: 0; }
+        .results .subtitle { font-size: 0.9rem; opacity: 0.9; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-top: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .economia-table {
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .economia-table caption {
+            caption-side: top;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary-dark);
+            padding: 12px 0 8px;
+            font-size: 0.95rem;
+        }
+
+        /* Estilos das Informações Extras */
+        .extras-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .extra-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .extra-card h3 { margin-top: 0; color: var(--primary-dark); font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Relatório de Consumo: Ar-Condicionado (UESC-Bahia)</h1>
+
+    <h2>1. Parâmetros da Simulação</h2>
+    <ul>
+        <li><strong>Local:</strong> Bahia (Concessionária Neoenergia Coelba).</li>
+        <li><strong>Tarifa de Energia:</strong> R$ 1,15 por kWh <em>(Valor médio estimado incluindo impostos e bandeiras)</em>.</li>
+        <li><strong>Período de Referência:</strong> Mensal (30 dias).</li>
+        <li><strong>Base Tecnológica:</strong> Cálculos baseados em potência média de aparelhos Split Convencionais (On/Off).</li>
+    </ul>
+
+    <h2>2. Custo Mensal para 1 Ar-Condicionado</h2>
+    <p>Valores totais estimados na conta de luz ao final de 30 dias de uso contínuo.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Potência</th>
+                <th>Consumo Médio</th>
+                <th>6 horas/dia</th>
+                <th>8 horas/dia</th>
+                <th>12 horas/dia</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>9.000 BTUs</strong></td>
+                <td>~0,8 kW</td>
+                <td>R$ 165,60</td>
+                <td>R$ 220,80</td>
+                <td>R$ 331,20</td>
+            </tr>
+            <tr>
+                <td><strong>12.000 BTUs</strong></td>
+                <td>~1,1 kW</td>
+                <td>R$ 227,70</td>
+                <td>R$ 303,60</td>
+                <td>R$ 455,40</td>
+            </tr>
+            <tr>
+                <td><strong>18.000 BTUs</strong></td>
+                <td>~1,6 kW</td>
+                <td>R$ 331,20</td>
+                <td>R$ 441,60</td>
+                <td>R$ 662,40</td>
+            </tr>
+            <tr>
+                <td><strong>24.000 BTUs</strong></td>
+                <td>~2,1 kW</td>
+                <td>R$ 434,70</td>
+                <td>R$ 579,60</td>
+                <td>R$ 869,40</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3. Simulação para Múltiplos Aparelhos (8h/dia)</h2>
+    <p>Cenário padrão para residências e escritórios utilizando os aparelhos por 8 horas diárias ao longo de 30 dias.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Quantidade</th>
+                <th>9.000 BTUs</th>
+                <th>12.000 BTUs</th>
+                <th>18.000 BTUs</th>
+                <th>24.000 BTUs</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>1 Aparelho</strong></td>
+                <td>R$ 220,80</td>
+                <td>R$ 303,60</td>
+                <td>R$ 441,60</td>
+                <td>R$ 579,60</td>
+            </tr>
+            <tr>
+                <td><strong>2 Aparelhos</strong></td>
+                <td>R$ 441,60</td>
+                <td>R$ 607,20</td>
+                <td>R$ 883,20</td>
+                <td>R$ 1.159,20</td>
+            </tr>
+            <tr>
+                <td><strong>3 Aparelhos</strong></td>
+                <td>R$ 662,40</td>
+                <td>R$ 910,80</td>
+                <td>R$ 1.324,80</td>
+                <td>R$ 1.738,80</td>
+            </tr>
+            <tr>
+                <td><strong>6 Aparelhos</strong></td>
+                <td>R$ 1.324,80</td>
+                <td>R$ 1.821,60</td>
+                <td>R$ 2.649,60</td>
+                <td>R$ 3.477,60</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>4. Calculadora e Gráfico Interativo</h2>
+    <p>Ajuste os valores abaixo para simular o cenário exato da sua casa ou empresa. O gráfico atualizará automaticamente demonstrando a diferença de gasto entre um modelo convencional e um modelo Inverter.</p>
+    
+    <div class="calculator-card">
+        <div class="grid-2">
+            <div class="input-group">
+                <label for="tarifa">Tarifa de Energia (R$/kWh)</label>
+                <input type="number" id="tarifa" value="1.15" step="0.01" min="0.5">
+            </div>
+            
+            <div class="input-group">
+                <label for="btus">Potência do Aparelho (BTUs)</label>
+                <select id="btus">
+                    <option value="0.8">9.000 BTUs</option>
+                    <option value="1.1">12.000 BTUs</option>
+                    <option value="1.6">18.000 BTUs</option>
+                    <option value="2.1">24.000 BTUs</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="horas">Horas de uso por dia</label>
+                <input type="number" id="horas" value="8" min="1" max="24">
+            </div>
+            
+            <div class="input-group">
+                <label for="quantidade">Quantidade de Aparelhos</label>
+                <input type="number" id="quantidade" value="1" min="1" max="20">
+            </div>
+
+            <div class="input-group">
+                <label for="dias">Dias por mês</label>
+                <input type="number" id="dias" value="30" min="1" max="31">
+            </div>
+        </div>
+
+        <div class="results">
+            <h3>Custo Mensal Estimado (Convencional)</h3>
+            <p class="price">R$ <span id="resultadoValor">220,80</span></p>
+            <p class="subtitle">Simulação para <span id="resultadoDias">30</span> dias de uso contínuo</p>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="comparativoChart"></canvas>
+        </div>
+        <table class="economia-table">
+            <caption>Tabela de Economia — Aparelho Selecionado</caption>
+            <thead>
+                <tr>
+                    <th>Tipo de Ar-Condicionado</th>
+                    <th>Custo do Ar-Condicionado</th>
+                    <th>Custo do ESP32 (30 dias)</th>
+                    <th>Valor Economizado</th>
+                </tr>
+            </thead>
+            <tbody id="comparativoEconomiaBody"></tbody>
+        </table>
+
+        <div class="chart-container">
+            <canvas id="potenciasChart"></canvas>
+        </div>
+        <table class="economia-table">
+            <caption>Tabela de Economia — Por Potência</caption>
+            <thead>
+                <tr>
+                    <th>Tipo de Ar-Condicionado</th>
+                    <th>Custo do Ar-Condicionado</th>
+                    <th>Custo do ESP32 (30 dias)</th>
+                    <th>Valor Economizado</th>
+                </tr>
+            </thead>
+            <tbody id="potenciasEconomiaBody"></tbody>
+        </table>
+    </div>
+
+    <h2>5. Consumo do ESP32</h2>
+    <p>Módulos ESP32 utilizados para monitoramento consomem em média <strong>0,79 Wh/h</strong> (0,79 W) por aparelho, em operação contínua de <strong>24 horas por dia</strong>. A tabela abaixo atualiza conforme a tarifa e os dias por mês definidos na calculadora.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Quantidade</th>
+                <th>Consumo Mensal (kWh)</th>
+                <th>Custo Mensal (R$)</th>
+            </tr>
+        </thead>
+        <tbody id="esp32TableBody"></tbody>
+    </table>
+
+    <!-- <h2>6. Informações Extras para Economia</h2>
+    <div class="extras-section">
+        <div class="extra-card">
+            <h3>❄️ A Regra dos 23ºC</h3>
+            <p>Muitas pessoas colocam o ar no 16ºC achando que vai gelar mais rápido. Isso é um mito. O aparelho trabalha na potência máxima até atingir a temperatura. Manter o controle em <strong>23ºC ou 24ºC</strong> garante conforto térmico e economiza até 20% na conta de luz, evitando que o compressor fique sobrecarregado.</p>
+        </div>
+        
+        <div class="extra-card">
+            <h3>⚡ Tecnologia Inverter</h3>
+            <p>Modelos convencionais ligam e desligam o compressor repentinamente (gerando picos de energia). O compressor Inverter trabalha de forma contínua e ajusta a rotação conforme a necessidade. Isso pode gerar uma <strong>economia de 40% a 60%</strong> no consumo mensal em relação aos modelos antigos.</p>
+        </div>
+        
+        <div class="extra-card">
+            <h3>🧹 Limpeza dos Filtros</h3>
+            <p>Filtros sujos bloqueiam a saída de ar, forçando o aparelho a trabalhar muito mais para resfriar o mesmo ambiente. Lave os filtros com água corrente a cada <strong>15 ou 30 dias</strong>. Além de economizar energia, isso evita problemas respiratórios causados por ácaros e poeira.</p>
+        </div>
+        
+        <div class="extra-card">
+            <h3>📏 Dimensionamento Certo</h3>
+            <p>Comprar um ar de 9.000 BTUs para uma sala que exige 18.000 BTUs fará o aparelho trabalhar no máximo o tempo todo, consumindo muita energia e quebrando rápido. Calcule cerca de <strong>600 BTUs por metro quadrado</strong>, somando 600 BTUs extras para cada pessoa ou equipamento eletrônico no ambiente.</p>
+        </div>
+    </div> -->
+</div>
+
+<script>
+    const POTENCIAS = [
+        { label: '9.000 BTUs', kw: 0.8 },
+        { label: '12.000 BTUs', kw: 1.1 },
+        { label: '18.000 BTUs', kw: 1.6 },
+        { label: '24.000 BTUs', kw: 2.1 }
+    ];
+
+    const ESP32_KW = 0.79 / 1000; // 0,79 Wh/h = 0,79 W
+    const ESP32_HORAS_DIA = 24;
+    const ESP32_DIAS = 30;
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true, position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        return ctx.dataset.label + ': R$ ' + Number(ctx.raw).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                }
+            }
+        }
+    };
+
+    // Gráfico: Convencional vs Inverter (aparelho selecionado)
+    const ctx = document.getElementById('comparativoChart').getContext('2d');
+    let comparativoChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Convencional (On/Off)', 'Tecnologia Inverter (Até 50% mais econômico)', 'ESP32 (30 dias)'],
+            datasets: [{
+                label: 'Custo Mensal (R$)',
+                data: [0, 0, 0],
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.7)',
+                    'rgba(34, 197, 94, 0.7)',
+                    'rgba(99, 102, 241, 0.7)'
+                ],
+                borderColor: [
+                    'rgb(220, 38, 38)',
+                    'rgb(22, 163, 74)',
+                    'rgb(79, 70, 229)'
+                ],
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...chartOptions,
+            plugins: {
+                ...chartOptions.plugins,
+                legend: { display: false },
+                title: { display: true, text: 'Comparativo: Convencional vs Inverter', font: { size: 16 } }
+            }
+        }
+    });
+
+    // Gráfico: todas as potências
+    const ctxPotencias = document.getElementById('potenciasChart').getContext('2d');
+    let potenciasChart = new Chart(ctxPotencias, {
+        type: 'bar',
+        data: {
+            labels: POTENCIAS.map(p => p.label),
+            datasets: [
+                {
+                    label: 'Convencional (On/Off)',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    borderColor: 'rgb(220, 38, 38)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Inverter (até 50% mais econômico)',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                    borderColor: 'rgb(22, 163, 74)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'ESP32 (30 dias)',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                    borderColor: 'rgb(79, 70, 229)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            ...chartOptions,
+            plugins: {
+                ...chartOptions.plugins,
+                title: { display: true, text: 'Custo Mensal por Potência do Aparelho', font: { size: 16 } }
+            }
+        }
+    });
+
+    function calcularCustoEsp32(tarifa, quantidade) {
+        return ESP32_KW * ESP32_HORAS_DIA * ESP32_DIAS * tarifa * quantidade;
+    }
+
+    function calcularCustoMensal(kwMedia, horas, dias, tarifa, quantidade) {
+        return (kwMedia * horas * dias * tarifa) * quantidade;
+    }
+
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarTabelaEsp32(tarifa, dias) {
+        const tbody = document.getElementById('esp32TableBody');
+        tbody.innerHTML = '';
+
+        for (let qtd = 1; qtd <= 8; qtd++) {
+            const kwhMensal = ESP32_KW * ESP32_HORAS_DIA * dias * qtd;
+            const custoMensal = kwhMensal * tarifa;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${qtd} ${qtd === 1 ? 'Aparelho' : 'Aparelhos'}</strong></td>
+                <td>${kwhMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh</td>
+                <td>${formatarMoeda(custoMensal)}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function atualizarTabelaEconomia(tbodyId, linhas) {
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = '';
+
+        linhas.forEach(({ tipo, custoAc, custoEsp32 }) => {
+            const economizado = custoAc - custoEsp32;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${tipo}</strong></td>
+                <td>${formatarMoeda(custoAc)}</td>
+                <td>${formatarMoeda(custoEsp32)}</td>
+                <td>${formatarMoeda(economizado)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calcular() {
+        const tarifa = parseFloat(document.getElementById('tarifa').value) || 0;
+        const kwMedia = parseFloat(document.getElementById('btus').value) || 0;
+        const horas = parseFloat(document.getElementById('horas').value) || 0;
+        const quantidade = parseInt(document.getElementById('quantidade').value) || 0;
+        const dias = parseInt(document.getElementById('dias').value) || 30;
+
+        const custoMensalConv = calcularCustoMensal(kwMedia, horas, dias, tarifa, quantidade);
+        const custoMensalInv = custoMensalConv * 0.50;
+        const custoEsp32 = calcularCustoEsp32(tarifa, quantidade);
+
+        document.getElementById('resultadoValor').textContent = custoMensalConv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('resultadoDias').textContent = dias;
+
+        comparativoChart.data.datasets[0].data = [custoMensalConv, custoMensalInv, custoEsp32];
+        comparativoChart.update();
+
+        const custosConv = POTENCIAS.map(p => calcularCustoMensal(p.kw, horas, dias, tarifa, quantidade));
+        const custosInv = custosConv.map(c => c * 0.50);
+        const custosEsp32 = POTENCIAS.map(() => custoEsp32);
+
+        potenciasChart.data.datasets[0].data = custosConv;
+        potenciasChart.data.datasets[1].data = custosInv;
+        potenciasChart.data.datasets[2].data = custosEsp32;
+        potenciasChart.update();
+
+        const btuLabel = document.getElementById('btus').selectedOptions[0].text;
+        atualizarTabelaEconomia('comparativoEconomiaBody', [
+            { tipo: `${btuLabel} — Convencional (On/Off)`, custoAc: custoMensalConv, custoEsp32 },
+            { tipo: `${btuLabel} — Tecnologia Inverter`, custoAc: custoMensalInv, custoEsp32 }
+        ]);
+
+        const linhasPotencias = POTENCIAS.map((p, i) => ({
+            tipo: `${p.label} — Convencional (On/Off)`,
+            custoAc: custosConv[i],
+            custoEsp32
+        }));
+        atualizarTabelaEconomia('potenciasEconomiaBody', linhasPotencias);
+
+        atualizarTabelaEsp32(tarifa, dias);
+    }
+
+    // Adicionar Event Listeners para atualizar automaticamente ao mudar qualquer input
+    document.getElementById('tarifa').addEventListener('input', calcular);
+    document.getElementById('btus').addEventListener('change', calcular);
+    document.getElementById('horas').addEventListener('input', calcular);
+    document.getElementById('quantidade').addEventListener('input', calcular);
+    document.getElementById('dias').addEventListener('input', calcular);
+
+    // Executar cálculo inicial ao carregar a página
+    window.onload = calcular;
+</script>
+
+</body>
+</html>
