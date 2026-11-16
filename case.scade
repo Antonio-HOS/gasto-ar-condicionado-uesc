@@ -1,0 +1,196 @@
+ // ============================================================
+//  CASE ESP32 + LED IR + KIT CARREGADOR 18650 (TP4056 USB-C c/ protecao)
+//  90 x 90 x 25 mm  -  Parametrico
+//  Abra no OpenSCAD (openscad.org) -> F6 renderiza -> F7 exporta STL
+//
+//  LAYOUT (vista de cima, frente = Y baixo):
+//   frente : ESP32 (USB na parede esquerda) + LED IR (parede frontal)
+//   meio   : modulo TP4056 USB-C (conector na parede direita)
+//   fundo  : suporte da bateria 18650 deitado
+// ============================================================
+
+parte = "ambos";      // "base", "tampa" ou "ambos"
+
+// ---------- Dimensoes externas ----------
+L        = 90;
+W        = 100;
+H_total  = 30;
+parede   = 2.5;
+piso     = 2.5;
+tampa_t  = 2.5;
+raio     = 4;
+folga    = 0.3;
+H_base   = H_total - tampa_t;   // 22.5
+
+// ---------- Parafusos M3 ----------
+poste_d  = 7;
+furo_d   = 2.6;
+furo_tampa_d = 3.4;
+poste_off = 5.5;
+
+// ---------- ESP32 DevKit V1 ----------
+esp_L    = 55;
+esp_W    = 28.5;
+esp_pad_h = 6;
+esp_x0   = parede + 2;     // borda do USB perto da parede esquerda
+esp_y0   = 11.5;           // acima do poste frontal
+usb_w    = 13;
+usb_h    = 8;
+usb_cz   = piso + esp_pad_h + 1.5;
+usb_cy   = esp_y0 + esp_W/2;
+
+// ---------- Modulo TP4056 USB-C com protecao (BMS) ----------
+tp_L     = 26.5;           // comprimento (medida tipica 26 mm)
+tp_W     = 17.5;           // largura     (medida tipica 17 mm)
+tp_pad_h = 3;
+tp_x1    = L - parede - 0.3;      // lado do USB-C encostado na parede direita
+tp_x0    = tp_x1 - tp_L;
+tp_y0    = 41.5;
+tp_cy    = tp_y0 + tp_W/2;
+tpusb_w  = 12;             // recorte USB-C (plugue com capa precisa de folga)
+tpusb_h  = 7;
+tpusb_cz = piso + tp_pad_h + 1.6 + 1.7;
+
+// ---------- Suporte de bateria 18650 (1 celula) ----------
+sup_L    = 77.5;           // comprimento do suporte
+sup_W    = 21;             // largura
+sup_H    = 19;             // altura (max ~20 mm cabe)
+sup_x0   = 9.5;
+sup_y0   = 65;
+
+// ---------- LED infravermelho (parede frontal) ----------
+led_d    = 5.2;
+led_cx   = L / 2 + 25;
+led_cz   = piso + 11;
+led_anel = 9;
+led_prof = 7;
+
+// ---------- Ventilacao (parede frontal, lado esquerdo) ----------
+vent_n   = 9;
+vent_w   = 2;
+vent_h   = 10;
+vent_x0  = 12;
+vent_pitch = 5.5;
+
+// ---------- Texto gravado na tampa ----------
+texto       = "ANTONIO HENRIQUE";
+texto_larg  = 76;      // largura total do texto (mm)
+texto_prof  = 0.8;     // profundidade da gravacao (mm)
+texto_fonte = "Liberation Sans:style=Bold";
+
+$fn = 48;
+
+module caixa_arred(x, y, h, r) {
+    hull() for (i = [r, x - r], j = [r, y - r])
+        translate([i, j, 0]) cylinder(r = r, h = h);
+}
+
+function postes() = [
+    [poste_off, poste_off], [L - poste_off, poste_off],
+    [poste_off, W - poste_off], [L - poste_off, W - poste_off]
+];
+
+module base() {
+    difference() {
+        union() {
+            difference() {
+                caixa_arred(L, W, H_base, raio);
+                translate([parede, parede, piso])
+                    caixa_arred(L - 2*parede, W - 2*parede, H_base, 1.5);
+            }
+
+            for (p = postes())
+                translate([p[0], p[1], 0]) cylinder(d = poste_d, h = H_base);
+
+            // ---- apoios + guias ESP32 ----
+            for (dx = [3, esp_L - 9], dy = [1, esp_W - 5])
+                translate([esp_x0 + dx, esp_y0 + dy, piso - 0.1])
+                    cube([6, 4, esp_pad_h + 0.1]);
+            for (dx = [8, esp_L - 14], dy = [-2.5, esp_W])
+                translate([esp_x0 + dx, esp_y0 + dy, piso - 0.1])
+                    cube([6, 2.5, esp_pad_h + 4]);
+            translate([esp_x0 + esp_L -2, esp_y0 + 4, piso - 0.1])
+                cube([2, esp_W - 8, esp_pad_h + 4]);
+
+            // ---- apoios + guias TP4056 ----
+            for (dx = [0, tp_L - 5], dy = [0, tp_W - 4])
+                translate([tp_x0 + dx, tp_y0 + dy, piso - 0.1])
+                    cube([5, 4, tp_pad_h + 0.1]);
+            for (dx = [3, tp_L - 12], dy = [-2, tp_W])
+                translate([tp_x0 + dx, tp_y0 + dy, piso - 0.1])
+                    cube([6, 2, tp_pad_h + 5]);
+            translate([tp_x0 - 1.7, tp_y0 + 3, piso - 0.1])
+                cube([1.7, tp_W - 6, tp_pad_h + 5]);
+
+            // ---- retentores do suporte 18650 ----
+            for (x = [12, 40])        // lado da frente
+                translate([x, sup_y0 - 2.1, piso - 0.1]) cube([8, 2, 9]);
+            for (x = [25, 60])        // lado de tras
+                translate([x, sup_y0 + sup_W + 0.1, piso - 0.1]) cube([8, 2, 9]);
+
+            // ---- suporte interno do LED IR ----
+            translate([led_cx, parede - 0.01, led_cz])
+                rotate([-90, 0, 0]) cylinder(d = led_anel, h = led_prof);
+        }
+
+        for (p = postes())
+            translate([p[0], p[1], H_base - 12]) cylinder(d = furo_d, h = 12.1);
+
+        // USB da ESP32 (parede esquerda) - programacao
+        translate([-1, usb_cy - usb_w/2, usb_cz - usb_h/2])
+            cube([parede + 2, usb_w, usb_h]);
+
+        // USB-C do carregador (parede direita)
+        translate([L - parede - 1, tp_cy - tpusb_w/2, tpusb_cz - tpusb_h/2])
+            cube([parede + 2, tpusb_w, tpusb_h]);
+
+        // furo do LED IR
+        translate([led_cx, -1, led_cz])
+            rotate([-90, 0, 0]) cylinder(d = led_d, h = led_prof + parede + 2);
+
+        // ventilacao
+        for (i = [0 : vent_n - 1])
+            translate([vent_x0 + i*vent_pitch, -1, piso + 6])
+                cube([vent_w, parede + 2, vent_h]);
+    }
+}
+
+module tampa() {
+    lip_h = 2; lip_t = 1.2;
+    difference() {
+        union() {
+            caixa_arred(L, W, tampa_t, raio);
+            difference() {
+                translate([parede + folga, parede + folga, tampa_t])
+                    difference() {
+                        caixa_arred(L - 2*(parede + folga), W - 2*(parede + folga), lip_h, 1.5);
+                        translate([lip_t, lip_t, -0.1])
+                            caixa_arred(L - 2*(parede + folga) - 2*lip_t,
+                                        W - 2*(parede + folga) - 2*lip_t, lip_h + 0.2, 1);
+                    }
+                for (p = postes())
+                    translate([p[0], p[1], tampa_t - 0.1])
+                        cylinder(d = poste_d + 1.5, h = lip_h + 0.2);
+            }
+        }
+        for (p = postes())
+            translate([p[0], p[1], -0.1]) {
+                cylinder(d = furo_tampa_d, h = tampa_t + 0.2);
+                translate([0, 0, tampa_t - 1.4])
+                    cylinder(d1 = furo_tampa_d, d2 = 6.4, h = 1.5);
+            }
+
+        // texto gravado na face externa (z = 0, voltada para a mesa na impressao)
+        // mirror: a tampa e virada ao fechar, entao o texto le-se correto por fora
+        translate([L/2, W/2, -0.01])
+            mirror([1, 0, 0])
+                linear_extrude(height = texto_prof + 0.01)
+                    resize([texto_larg, 0], auto = true)
+                        text(texto, size = 9, font = texto_fonte,
+                             halign = "center", valign = "center");
+    }
+}
+
+if (parte == "base")  base();
+if (parte == "tampa") tampa();
+if (parte == "ambos") { base(); translate([L + 10, 0, 0]) tampa(); }

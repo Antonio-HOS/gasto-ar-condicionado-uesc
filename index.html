@@ -3,20 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Consumo: Ar-Condicionado</title>
-    <!-- Fonte Google -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Biblioteca Chart.js para o gráfico interativo -->
+    <meta name="theme-color" content="#1A3C2B">
+    <meta name="description" content="Relatório de consumo de ar-condicionado da UESC, detalhes do firmware ESP32 e registro de construção do PEI III.">
+    <title>Gasto UESC · PEI III</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@400,500,600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #0284c7; /* Azul padrão */
-            --primary-dark: #0369a1;
-            --background: #f8fafc;
-            --surface: #ffffff;
-            --text: #334155;
-            --text-light: #64748b;
-            --border: #e2e8f0;
+            --paper: #ebebe9;
+            --forest: #1A3C2B;
+            --grid: #3A3A38;
+            --ink: #1C1C1A;
+            --line: rgba(58, 58, 56, 0.2);
+            --line-strong: rgba(58, 58, 56, 0.45);
+            --coral: #FF8C69;
+            --mint: #9EFFBF;
+            --gold: #F4D35E;
+            --white: #ffffff;
+            --display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+            --body: "General Sans", "Avenir Next", "Segoe UI", sans-serif;
+            --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+            --gap: rgba(58, 58, 56, 0.28);
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -24,465 +35,2232 @@
         html { -webkit-text-size-adjust: 100%; }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background);
-            color: var(--text);
-            line-height: 1.6;
             margin: 0;
-            padding: 20px;
-            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 64px;
+            font-family: var(--body);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--ink);
+            background-color: var(--paper);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Crect width='240' height='240' fill='%23F7F7F5'/%3E%3Cpath d='M100 0V240M180 0V240M0 70H240M0 160H240M40 0V70M40 160V240M0 120H100M180 120H240M220 70V160M100 200H180' fill='none' stroke='%233A3A38' stroke-opacity='0.3' stroke-width='0.5'/%3E%3C/svg%3E");
+            background-size: 240px 240px;
         }
 
-        .container {
-            max-width: 900px;
-            width: 100%;
-            margin: 0 auto;
-            background: var(--surface);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        main { flex: 1 0 auto; }
+
+        button, input, select { font: inherit; color: inherit; }
+
+        ::selection { background: var(--mint); color: var(--forest); }
+
+        .shell {
+            width: min(1180px, calc(100% - 48px));
+            margin-inline: auto;
         }
 
-        h1, h2, h3 { color: #0f172a; word-wrap: break-word; overflow-wrap: break-word; }
+        .topbar {
+            position: fixed;
+            inset: 0 0 auto 0;
+            z-index: 30;
+            height: 64px;
+            background: var(--paper);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .topbar-inner {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .brand {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--forest);
+            text-decoration: none;
+            min-width: 0;
+        }
+
+        .brand-mark {
+            display: flex;
+            align-items: center;
+            background: transparent;
+            flex: 0 0 auto;
+        }
+
+        .brand-mark img {
+            display: block;
+            height: 44px;
+            width: auto;
+        }
+
+        .brand strong,
+        .brand small {
+            display: block;
+            font-family: var(--mono);
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        .brand strong { font-size: 11px; }
+
+        .brand small {
+            margin-top: 2px;
+            font-size: 9px;
+            color: var(--grid);
+        }
+
+        .nav {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav button {
+            appearance: none;
+            border: 0;
+            border-bottom: 1px solid transparent;
+            background: transparent;
+            color: var(--grid);
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 10px 7px;
+            border-radius: 0;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 160ms ease-out, border-color 160ms ease-out;
+        }
+
+        .nav button:hover { color: var(--forest); }
+
+        .nav button.is-active {
+            color: var(--forest);
+            border-bottom-color: var(--forest);
+        }
+
+        html[data-start="codigo"] .nav [data-view="gasto"].is-active,
+        html[data-start="construcao"] .nav [data-view="gasto"].is-active {
+            color: var(--grid);
+            border-bottom-color: transparent;
+        }
+
+        html[data-start="codigo"] .nav [data-view="codigo"],
+        html[data-start="construcao"] .nav [data-view="construcao"] {
+            color: var(--forest);
+            border-bottom-color: var(--forest);
+        }
+
+        .topbar-actions {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            appearance: none;
+            border-radius: 0;
+            cursor: pointer;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            line-height: 1;
+            padding: 11px 14px;
+            transition: background 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--forest);
+            border: 1px solid var(--line-strong);
+        }
+
+        .btn-solid {
+            background: var(--forest);
+            color: var(--paper);
+            border: 1px solid var(--forest);
+        }
+
+        .btn-ghost:hover,
+        .btn-solid:hover {
+            background: var(--forest);
+            color: var(--paper);
+        }
+
+        .btn-solid:hover {
+            background: transparent;
+            color: var(--forest);
+        }
+
+        .view[hidden] { display: none !important; }
+
+        html[data-start="codigo"] #view-gasto,
+        html[data-start="construcao"] #view-gasto { display: none !important; }
+
+        html[data-start="codigo"] #view-codigo,
+        html[data-start="construcao"] #view-construcao { display: block !important; }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(240px, 420px);
+            gap: 48px;
+            align-items: end;
+            min-width: 0;
+            padding: 72px 0 64px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 4px 12px;
+            border: 1px solid rgba(26, 60, 43, 0.2);
+            color: var(--forest);
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .status-badge span {
+            width: 8px;
+            height: 8px;
+            background: var(--forest);
+            flex: 0 0 auto;
+        }
+
+        h1, h2, h3 { color: var(--forest); }
+
         h1 {
-            font-size: clamp(1.35rem, 4vw, 1.85rem);
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 10px;
-            margin-bottom: 30px;
-            line-height: 1.3;
+            margin: 18px 0 0;
+            max-width: min(15ch, 100%);
+            font-family: var(--display);
+            font-size: clamp(56px, 6.6vw, 92px);
+            font-weight: 700;
+            line-height: 0.9;
+            letter-spacing: -0.045em;
+            text-wrap: balance;
         }
+
+        .hero-kicker {
+            margin: 28px 0 0;
+            max-width: 46ch;
+            padding-left: 16px;
+            border-left: 1px solid var(--forest);
+            color: var(--grid);
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.55;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+        }
+
+        .hero-kicker code {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            font-size: inherit;
+            overflow-wrap: anywhere;
+        }
+
+        .wireframe {
+            position: relative;
+            width: min(100%, 420px);
+            aspect-ratio: 1;
+            justify-self: end;
+            border: 1px solid var(--line-strong);
+            background: rgba(247, 247, 245, 0.94);
+        }
+
+        .wireframe svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .blend-plate {
+            position: absolute;
+            inset: 0;
+            mix-blend-mode: luminosity;
+            opacity: 0.9;
+            transition: opacity 180ms ease-out;
+        }
+
+        .wireframe:hover .blend-plate {
+            mix-blend-mode: normal;
+            opacity: 1;
+        }
+
+        .topology {
+            width: min(100%, 450px);
+            max-width: 100%;
+            min-width: 0;
+            margin: 0;
+            justify-self: end;
+        }
+
+        .topology-frame {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 1;
+            border: 1px solid var(--line-strong);
+            border-radius: 50%;
+            background: rgba(247, 247, 245, 0.94);
+            overflow: hidden;
+        }
+
+        .topology-frame svg { width: 100%; height: 100%; display: block; }
+
+        .orbit-rotor {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            animation: orbit 20s linear infinite;
+        }
+
+        .orbit-key {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none;
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--forest);
+        }
+
+        .orbit-key li { display: inline-flex; align-items: center; gap: 6px; }
+
+        .swatch { width: 8px; height: 8px; display: block; }
+        .swatch.coral { background: var(--coral); }
+        .swatch.mint { background: var(--mint); }
+        .swatch.gold { background: var(--gold); }
+        .swatch.forest { background: var(--forest); }
+
+        .mono-card {
+            width: min(100%, 420px);
+            justify-self: end;
+            border: 1px solid var(--line-strong);
+            background: var(--paper);
+            padding: 20px 20px 16px;
+        }
+
+        .mono-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .stars { display: inline-flex; gap: 2px; }
+
+        .mono-card p {
+            margin: 16px 0;
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--ink);
+        }
+
+        .mono-card footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid var(--line);
+            padding-top: 12px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            background: var(--forest);
+            color: var(--paper);
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+        }
+
+        .mono-card footer strong,
+        .mono-card footer small {
+            display: block;
+            font-family: var(--mono);
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .mono-card footer strong {
+            font-size: 12px;
+            color: var(--forest);
+        }
+
+        .mono-card footer small {
+            margin-top: 3px;
+            font-size: 10px;
+            color: var(--grid);
+        }
+
+        .block { border-top: 1px solid var(--line); }
+
+        .block .shell { padding-block: 52px 56px; }
+
+        .block h2,
+        #calculadora {
+            scroll-margin-top: 88px;
+        }
+
+        .view { counter-reset: sec; }
+
+        .block h2::before {
+            counter-increment: sec;
+            content: counter(sec, decimal-pad);
+            display: block;
+            width: fit-content;
+            margin-bottom: 10px;
+            padding-right: 6px;
+            background: var(--paper);
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.16em;
+            color: var(--grid);
+        }
+
         h2 {
-            font-size: clamp(1.15rem, 3vw, 1.4rem);
-            margin-top: 40px;
-            color: var(--primary-dark);
+            margin: 0 0 14px;
+            font-family: var(--display);
+            font-size: clamp(32px, 4vw, 44px);
+            font-weight: 600;
+            line-height: 0.95;
+            letter-spacing: -0.04em;
         }
 
-        p { overflow-wrap: break-word; }
+        h3 {
+            margin: 0 0 8px;
+            font-family: var(--display);
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
 
-        ul { margin-bottom: 20px; padding-left: 20px; }
-        li { margin-bottom: 8px; }
+        .block > .shell > p,
+        .card p { margin: 0 0 14px; }
+
+        .bento {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1px;
+            margin: 22px 0 0;
+            padding: 0;
+            list-style: none;
+            background: var(--gap);
+            border: 1px solid var(--gap);
+        }
+
+        .bento li {
+            min-width: 0;
+            max-width: 100%;
+            padding: 32px;
+            background: var(--paper);
+            border-left: 2px solid var(--coral);
+        }
+
+        .bento li.accent-mint { border-left-color: var(--mint); }
+        .bento li.accent-gold { border-left-color: var(--gold); }
+        .bento li.accent-forest { border-left-color: var(--forest); }
+
+        .cell-label {
+            margin: 0 0 12px;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--forest);
+        }
+
+        .bento p { margin: 0; }
+
+        .diy {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1px;
+            margin: 22px 0 0;
+            padding: 0;
+            list-style: none;
+            background: var(--gap);
+            border: 1px solid var(--gap);
+        }
+
+        .diy li {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px 16px 20px;
+            background: var(--paper);
+        }
+
+        .diy figure {
+            margin: 0;
+            aspect-ratio: 1;
+            overflow: hidden;
+            background: #f4f1df;
+            border: 1px solid var(--line);
+        }
+
+        .diy img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .diy h3 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .diy p { margin: 0; }
+
+        .diy code { overflow-wrap: anywhere; }
+
+        .note a { color: var(--forest); }
+
+        .diy .btn {
+            align-self: flex-start;
+            margin-top: auto;
+            text-decoration: none;
+        }
+
+        .stats { margin-top: 8px; }
+
+        .stats strong,
+        .slot-value {
+            display: block;
+            margin-top: 8px;
+            font-family: var(--display);
+            font-size: clamp(22px, 2vw, 28px);
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            color: var(--forest);
+        }
+
+        .slot-value { margin-top: 18px; color: var(--grid); }
+
+        .note {
+            margin: 14px 0 0;
+            color: var(--grid);
+            font-size: 0.95rem;
+        }
+
+        .mock {
+            margin-top: 22px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            background: var(--white);
+        }
+
+        .mock-chip {
+            display: inline-block;
+            padding: 2px 6px;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .mock-chip.coral { background: var(--coral); color: var(--forest); }
+        .mock-chip.mint { background: var(--mint); color: var(--forest); }
+        .mock-chip.gold { background: var(--gold); color: var(--forest); }
+        .mock-chip.forest { background: var(--forest); color: var(--paper); }
+
+        .mock pre {
+            margin: 8px 0 0;
+            overflow-x: auto;
+            font-family: var(--mono);
+            font-size: 11px;
+            line-height: 1.6;
+            letter-spacing: 0.03em;
+            color: var(--ink);
+            white-space: pre;
+        }
+
+        .panel {
+            max-width: 100%;
+            min-width: 0;
+            margin-top: 8px;
+            padding: 0;
+            background: var(--paper);
+            border: 1px solid var(--line);
+        }
 
         .table-wrap {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            margin: 20px 0;
-            border-radius: 6px;
         }
-
-        .table-wrap table { margin: 0; }
-
-        .table-wide table,
-        .economia-table { min-width: 520px; }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
             font-size: 0.95rem;
+            font-variant-numeric: tabular-nums;
         }
 
         th, td {
-            padding: 12px 15px;
-            border: 1px solid var(--border);
-            text-align: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            text-align: right;
             white-space: nowrap;
         }
 
-        th { background-color: #f1f5f9; font-weight: 600; }
-        tr:nth-child(even) { background-color: #f8fafc; }
+        th:first-child, td:first-child { text-align: left; }
 
-        /* Estilos do Simulador */
-        .calculator-card {
-            background-color: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 8px;
-            padding: 25px;
-            margin-top: 30px;
+        th {
+            background: var(--paper);
+            color: var(--grid);
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
         }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+        td strong { color: var(--forest); font-weight: 600; }
 
-        .input-group { display: flex; flex-direction: column; margin-bottom: 15px; min-width: 0; }
-        .input-group label { font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
-        .input-group input, .input-group select {
-            width: 100%;
-            max-width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 1rem;
-            background: white;
-        }
+        tr:last-child td { border-bottom: 0; }
 
-        .results {
-            background: var(--primary);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 20px;
-        }
+        tbody tr:hover td { background: rgba(26, 60, 43, 0.04); }
 
-        .results h3 { color: white; margin: 0 0 10px 0; font-size: clamp(1rem, 3vw, 1.2rem); }
-        .results .price {
-            font-size: clamp(1.75rem, 6vw, 2.5rem);
-            font-weight: 700;
-            margin: 0;
-            word-break: break-word;
-        }
-        .results .subtitle { font-size: 0.9rem; opacity: 0.9; }
+        .table-wide table,
+        .economia-table { min-width: 640px; }
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-            margin-top: 30px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        .economia-table {
-            margin-top: 0;
-            margin-bottom: 0;
-            min-width: 560px;
-        }
+        .economia-table { margin: 0; }
 
         .economia-table caption {
             caption-side: top;
+            padding: 14px 14px 8px;
             text-align: left;
-            font-weight: 600;
-            color: var(--primary-dark);
-            padding: 12px 0 8px;
-            font-size: 0.95rem;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--forest);
             white-space: normal;
         }
 
-        /* Estilos das Informações Extras */
-        .extras-section {
+        .num-save {
+            color: var(--forest);
+            font-weight: 600;
+            background: var(--mint);
+        }
+
+        tbody tr:hover td.num-save { background: var(--mint); }
+
+        .tech-form {
+            position: relative;
+            max-width: 640px;
+            margin: 28px auto 0;
+            padding: 28px 28px 24px;
+            background: var(--paper);
+            border: 1px solid var(--line-strong);
+        }
+
+        .corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+        }
+
+        .corner-tl { top: -1px; left: -1px; border-top: 1px solid var(--forest); border-left: 1px solid var(--forest); }
+        .corner-tr { top: -1px; right: -1px; border-top: 1px solid var(--forest); border-right: 1px solid var(--forest); }
+        .corner-bl { bottom: -1px; left: -1px; border-bottom: 1px solid var(--forest); border-left: 1px solid var(--forest); }
+        .corner-br { bottom: -1px; right: -1px; border-bottom: 1px solid var(--forest); border-right: 1px solid var(--forest); }
+
+        .grid-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px 16px;
+            margin-top: 18px;
+        }
+
+        .grid-form .input-group:last-child { grid-column: 1 / -1; }
+
+        .input-group { display: flex; flex-direction: column; min-width: 0; }
+
+        .input-group label {
+            margin-bottom: 8px;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--forest);
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 0;
+            background: var(--white);
+            color: var(--ink);
+            font-family: var(--body);
+            font-size: 15px;
+        }
+
+        .input-group select {
+            appearance: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--forest) 50%),
+                linear-gradient(135deg, var(--forest) 50%, transparent 50%);
+            background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+            padding-right: 32px;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: 1px solid var(--forest);
+            outline-offset: 1px;
+            border-color: var(--forest);
+        }
+
+        .results {
+            margin-top: 28px;
+            padding: 28px 32px;
+            background: var(--forest);
+            color: var(--paper);
+        }
+
+        .results h3 {
+            margin: 0 0 12px;
+            color: var(--mint);
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .results .price {
+            margin: 0;
+            font-family: var(--display);
+            font-size: clamp(48px, 6vw, 76px);
+            font-weight: 700;
+            line-height: 0.9;
+            letter-spacing: -0.045em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .results .subtitle {
+            margin: 12px 0 0;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(247, 247, 245, 0.78);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 340px;
+            width: 100%;
+            margin-top: 28px;
+            padding: 16px 12px 8px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+        }
+
+        .chart-container + .table-wrap { margin-top: 0; border: 1px solid var(--line); border-top: 0; background: var(--paper); }
+
+        .split {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1px;
             margin-top: 20px;
+            background: var(--gap);
+            border: 1px solid var(--gap);
         }
 
-        .extra-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-left: 4px solid var(--primary);
-            padding: 20px;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        .card {
+            min-width: 0;
+            padding: 32px;
+            background: var(--paper);
         }
 
-        .extra-card h3 { margin-top: 0; color: var(--primary-dark); font-size: 1.1rem; }
+        .solo-card {
+            margin-top: 8px;
+            border: 1px solid var(--line);
+        }
 
-        @media (max-width: 768px) {
-            body { padding: 12px; }
+        .card .status-badge { margin-bottom: 14px; }
 
-            .container {
-                padding: 24px 16px;
-                border-radius: 10px;
+        .card ul { margin: 12px 0 0; padding: 0; list-style: none; }
+
+        .card li {
+            position: relative;
+            margin: 0 0 8px;
+            padding-left: 14px;
+        }
+
+        .card li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 6px;
+            height: 6px;
+            background: var(--forest);
+        }
+
+        .steps {
+            list-style: none;
+            margin: 8px 0 0;
+            padding: 0;
+            counter-reset: step;
+        }
+
+        .steps li {
+            position: relative;
+            counter-increment: step;
+            padding: 0 0 22px 48px;
+        }
+
+        .steps li:last-child { padding-bottom: 0; }
+
+        .steps li::before {
+            content: counter(step, decimal-pad);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            background: var(--forest);
+            color: var(--paper);
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.04em;
+        }
+
+        .steps li:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            left: 15px;
+            top: 32px;
+            bottom: 0;
+            width: 1px;
+            background: var(--line-strong);
+        }
+
+        .steps strong { color: var(--forest); }
+
+        .method {
+            display: inline-block;
+            min-width: 72px;
+            padding: 3px 8px;
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+        }
+
+        .method.get { background: var(--mint); color: var(--forest); }
+        .method.post { background: var(--forest); color: var(--paper); }
+        .method.del { background: var(--coral); color: var(--forest); }
+
+        code, .mono { font-family: var(--mono); }
+
+        code {
+            padding: 1px 5px;
+            border: 1px solid var(--line);
+            background: var(--white);
+            color: var(--forest);
+            font-size: 0.86em;
+        }
+
+        .mono {
+            display: block;
+            margin: 12px 0;
+            padding: 12px;
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            background: var(--white);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .api-table th,
+        .api-table td,
+        .bytes-table th,
+        .bytes-table td { text-align: left; }
+
+        .callout {
+            margin-top: 18px;
+            padding: 16px 18px;
+            border: 1px solid var(--line);
+            border-left: 2px solid var(--gold);
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 0.95rem;
+        }
+
+        .footer-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-brand img {
+            display: block;
+            height: 32px;
+            width: auto;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding-block: 18px;
+            color: var(--forest);
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        :focus-visible {
+            outline: 1px solid var(--forest);
+            outline-offset: 3px;
+        }
+
+        @keyframes orbit {
+            to { transform: rotate(360deg); }
+        }
+
+        .block h2.plain::before {
+            content: none;
+            counter-increment: none;
+        }
+
+        .build-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 440px);
+            gap: 40px;
+            align-items: center;
+        }
+
+        .build-copy p { margin: 0 0 14px; }
+
+        .build-copy code,
+        .steps code { overflow-wrap: anywhere; }
+
+        .build-copy ol { margin: 8px 0 0; }
+
+        .case-frame {
+            width: min(100%, 440px);
+            justify-self: end;
+            border: 1px solid var(--line-strong);
+            background: #f4f1df;
+        }
+
+        .case-frame img,
+        .stage img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .ide { padding: 28px 24px 22px; }
+
+        .ide p {
+            margin: 0 0 10px;
+            color: var(--forest);
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .ide .upload-bar { margin: 18px 0 10px; }
+
+        .stage {
+            position: relative;
+            border: 1px solid var(--line-strong);
+            background: var(--paper);
+            overflow: hidden;
+        }
+
+        .stage svg { display: block; width: 100%; height: auto; }
+
+        .scanline {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--forest);
+            animation: scan 3.6s linear infinite;
+            pointer-events: none;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none;
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--forest);
+        }
+
+        .legend li { display: flex; align-items: center; gap: 8px; }
+
+        .cell { animation: cell-in 3.2s ease-out infinite; }
+
+        .wire {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 2.4s ease-out infinite;
+        }
+
+        .ir-beam { transform-box: fill-box; transform-origin: left center; animation: beam 1.6s ease-in-out infinite; }
+
+        .part { animation: drop-in 0.7s ease-out both; }
+        .part-2 { animation-delay: 0.45s; }
+        .part-3 { animation-delay: 0.9s; }
+        .part-4 { animation-delay: 1.35s; }
+
+        .upload-bar {
+            height: 8px;
+            border: 1px solid var(--forest);
+            background: var(--paper);
+        }
+
+        .upload-bar span {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: var(--forest);
+            animation: upload 2.6s ease-out infinite;
+        }
+
+        .ide-line { opacity: 0; animation: line-in 0.4s ease-out forwards; }
+        .ide-line:nth-child(1) { animation-delay: 0.2s; }
+        .ide-line:nth-child(2) { animation-delay: 0.7s; }
+        .ide-line:nth-child(3) { animation-delay: 1.2s; }
+        .ide-line:nth-child(4) { animation-delay: 1.8s; }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        @keyframes cell-in {
+            0%, 10% { transform: translateX(-52px); }
+            38%, 100% { transform: translateX(0); }
+        }
+
+        @keyframes draw {
+            0%, 12% { stroke-dashoffset: 100; }
+            58%, 100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes beam {
+            0%, 100% { opacity: 0.2; }
+            45% { opacity: 1; }
+        }
+
+        @keyframes drop-in {
+            from { opacity: 0; transform: translateY(-18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes upload {
+            0%, 8% { width: 0; }
+            72%, 100% { width: 100%; }
+        }
+
+        @keyframes line-in {
+            to { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .orbit-rotor,
+            .cell,
+            .wire,
+            .ir-beam,
+            .part,
+            .upload-bar span,
+            .ide-line,
+            .scanline { animation: none; }
+
+            .wire { stroke-dashoffset: 0; }
+            .ir-beam,
+            .part,
+            .ide-line { opacity: 1; transform: none; }
+            .upload-bar span { width: 100%; }
+            .scanline { display: none; }
+        }
+
+        @media (max-width: 1040px) {
+            body { padding-top: 112px; }
+
+            .topbar { height: auto; }
+
+            .topbar-inner {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas:
+                    "brand actions"
+                    "nav nav";
+                height: auto;
+                align-items: center;
+                gap: 8px 12px;
+                padding-block: 10px;
             }
 
-            h2 { margin-top: 28px; }
+            .brand { grid-area: brand; margin-right: 0; }
+            .topbar-actions { grid-area: actions; }
 
-            .calculator-card { padding: 16px; }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-                gap: 4px 16px;
+            .nav {
+                grid-area: nav;
+                position: static;
+                transform: none;
+                width: 100%;
+                min-width: 0;
+                justify-content: flex-start;
+                overflow-x: auto;
             }
+        }
 
-            th, td {
-                padding: 10px 8px;
-                font-size: 0.85rem;
-            }
+        @media (max-width: 900px) {
+            .hero,
+            .split,
+            .bento,
+            .build-grid { grid-template-columns: minmax(0, 1fr); }
 
-            .chart-container {
-                height: 260px;
-                padding: 10px;
-            }
+            .diy { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 
-            .table-wrap.table-wide {
-                margin: 16px 0;
-                border: 1px solid var(--border);
-            }
+            .wireframe,
+            .topology,
+            .mono-card,
+            .case-frame { justify-self: stretch; width: 100%; max-width: none; }
+
+            .wireframe { max-width: 420px; }
+
+            .grid-form { grid-template-columns: 1fr; }
+            .grid-form .input-group:last-child { grid-column: auto; }
+        }
+
+        @media (max-width: 720px) {
+            .shell { width: min(1180px, calc(100% - 28px)); }
+
+            .hero { padding: 36px 0 32px; gap: 28px; }
+
+            h1 { font-size: clamp(40px, 12vw, 56px); }
+
+            .block .shell { padding-block: 36px 32px; }
+
+            .bento li,
+            .card,
+            .tech-form,
+            .results { padding: 20px; }
+
+            .diy { grid-template-columns: minmax(0, 1fr); }
+
+            .chart-container { height: 280px; }
 
             .table-wrap.table-wide::after {
                 content: "Deslize para ver mais →";
                 display: block;
-                font-size: 0.75rem;
-                color: var(--text-light);
+                padding: 8px 12px 10px;
+                font-family: var(--mono);
+                font-size: 10px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--grid);
                 text-align: right;
-                padding: 6px 8px 0;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body { padding: 8px; }
-
-            .container {
-                padding: 18px 12px;
-                border-radius: 8px;
-                box-shadow: none;
-                border: 1px solid var(--border);
             }
 
-            ul { padding-left: 18px; }
+            .footer-inner { flex-direction: column; }
 
-            .results { padding: 16px 12px; }
+            .btn { padding: 10px 8px; }
 
-            .chart-container { height: 240px; }
-
-            .table-wide table,
-            .economia-table { min-width: 480px; }
+            th, td { padding: 10px 8px; font-size: 0.84rem; }
         }
     </style>
+    <script>
+        (function () {
+            var view = location.hash.replace("#", "");
+            if (view === "codigo" || view === "construcao") {
+                document.documentElement.setAttribute("data-start", view);
+            }
+        })();
+    </script>
 </head>
 <body>
 
-<div class="container">
-    <h1>Relatório de Consumo: Ar-Condicionado (UESC-Bahia)</h1>
-
-    <h2>1. Parâmetros da Simulação</h2>
-    <ul>
-        <li><strong>Local:</strong> Bahia (Concessionária Neoenergia Coelba).</li>
-        <li><strong>Tarifa de Energia:</strong> R$ 1,15 por kWh <em>(Valor médio estimado incluindo impostos e bandeiras)</em>.</li>
-        <li><strong>Período de Referência:</strong> Mensal (30 dias).</li>
-        <li><strong>Base Tecnológica:</strong> Cálculos baseados em potência média de aparelhos Split Convencionais (On/Off).</li>
-    </ul>
-
-    <h2>2. Custo Mensal para 1 Ar-Condicionado</h2>
-    <p>Valores totais estimados na conta de luz ao final de 30 dias de uso contínuo.</p>
-    <div class="table-wrap table-wide">
-        <table>
-            <thead>
-                <tr>
-                    <th>Potência</th>
-                    <th>Consumo Médio</th>
-                    <th>6 horas/dia</th>
-                    <th>8 horas/dia</th>
-                    <th>12 horas/dia</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>9.000 BTUs</strong></td>
-                    <td>~0,8 kW</td>
-                    <td>R$ 165,60</td>
-                    <td>R$ 220,80</td>
-                    <td>R$ 331,20</td>
-                </tr>
-                <tr>
-                    <td><strong>12.000 BTUs</strong></td>
-                    <td>~1,1 kW</td>
-                    <td>R$ 227,70</td>
-                    <td>R$ 303,60</td>
-                    <td>R$ 455,40</td>
-                </tr>
-                <tr>
-                    <td><strong>18.000 BTUs</strong></td>
-                    <td>~1,6 kW</td>
-                    <td>R$ 331,20</td>
-                    <td>R$ 441,60</td>
-                    <td>R$ 662,40</td>
-                </tr>
-                <tr>
-                    <td><strong>24.000 BTUs</strong></td>
-                    <td>~2,1 kW</td>
-                    <td>R$ 434,70</td>
-                    <td>R$ 579,60</td>
-                    <td>R$ 869,40</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <h2>3. Simulação para Múltiplos Aparelhos (8h/dia)</h2>
-    <p>Cenário padrão para residências e escritórios utilizando os aparelhos por 8 horas diárias ao longo de 30 dias.</p>
-    <div class="table-wrap table-wide">
-        <table>
-            <thead>
-                <tr>
-                    <th>Quantidade</th>
-                    <th>9.000 BTUs</th>
-                    <th>12.000 BTUs</th>
-                    <th>18.000 BTUs</th>
-                    <th>24.000 BTUs</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>1 Aparelho</strong></td>
-                    <td>R$ 220,80</td>
-                    <td>R$ 303,60</td>
-                    <td>R$ 441,60</td>
-                    <td>R$ 579,60</td>
-                </tr>
-                <tr>
-                    <td><strong>2 Aparelhos</strong></td>
-                    <td>R$ 441,60</td>
-                    <td>R$ 607,20</td>
-                    <td>R$ 883,20</td>
-                    <td>R$ 1.159,20</td>
-                </tr>
-                <tr>
-                    <td><strong>3 Aparelhos</strong></td>
-                    <td>R$ 662,40</td>
-                    <td>R$ 910,80</td>
-                    <td>R$ 1.324,80</td>
-                    <td>R$ 1.738,80</td>
-                </tr>
-                <tr>
-                    <td><strong>6 Aparelhos</strong></td>
-                    <td>R$ 1.324,80</td>
-                    <td>R$ 1.821,60</td>
-                    <td>R$ 2.649,60</td>
-                    <td>R$ 3.477,60</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <h2>4. Calculadora e Gráfico Interativo</h2>
-    <p>Ajuste os valores abaixo para simular o cenário exato da sua casa ou empresa. O gráfico atualizará automaticamente demonstrando a diferença de gasto entre um modelo convencional e um modelo Inverter.</p>
-    
-    <div class="calculator-card">
-        <div class="grid-2">
-            <div class="input-group">
-                <label for="tarifa">Tarifa de Energia (R$/kWh)</label>
-                <input type="number" id="tarifa" value="1.15" step="0.01" min="0.5">
-            </div>
-            
-            <div class="input-group">
-                <label for="btus">Potência do Aparelho (BTUs)</label>
-                <select id="btus">
-                    <option value="0.8">9.000 BTUs</option>
-                    <option value="1.1">12.000 BTUs</option>
-                    <option value="1.6">18.000 BTUs</option>
-                    <option value="2.1">24.000 BTUs</option>
-                </select>
-            </div>
-            
-            <div class="input-group">
-                <label for="horas">Horas de uso por dia</label>
-                <input type="number" id="horas" value="8" min="1" max="24">
-            </div>
-            
-            <div class="input-group">
-                <label for="quantidade">Quantidade de Aparelhos</label>
-                <input type="number" id="quantidade" value="1" min="1" max="20">
-            </div>
-
-            <div class="input-group">
-                <label for="dias">Dias por mês</label>
-                <input type="number" id="dias" value="30" min="1" max="31">
-            </div>
-        </div>
-
-        <div class="results">
-            <h3>Custo Mensal Estimado (Convencional)</h3>
-            <p class="price">R$ <span id="resultadoValor">220,80</span></p>
-            <p class="subtitle">Simulação para <span id="resultadoDias">30</span> dias de uso contínuo</p>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="comparativoChart"></canvas>
-        </div>
-        <div class="table-wrap table-wide">
-            <table class="economia-table">
-                <caption>Tabela de Economia — Aparelho Selecionado</caption>
-                <thead>
-                    <tr>
-                        <th>Tipo de Ar-Condicionado</th>
-                        <th>Custo do Ar-Condicionado</th>
-                        <th>Custo do ESP32 (30 dias)</th>
-                        <th>Valor Economizado</th>
-                    </tr>
-                </thead>
-                <tbody id="comparativoEconomiaBody"></tbody>
-            </table>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="potenciasChart"></canvas>
-        </div>
-        <div class="table-wrap table-wide">
-            <table class="economia-table">
-                <caption>Tabela de Economia — Por Potência</caption>
-                <thead>
-                    <tr>
-                        <th>Tipo de Ar-Condicionado</th>
-                        <th>Custo do Ar-Condicionado</th>
-                        <th>Custo do ESP32 (30 dias)</th>
-                        <th>Valor Economizado</th>
-                    </tr>
-                </thead>
-                <tbody id="potenciasEconomiaBody"></tbody>
-            </table>
+<header class="topbar">
+    <div class="shell topbar-inner">
+        <a class="brand" href="#gasto" data-view="gasto">
+            <span class="brand-mark">
+                <img src="brasao-uesc.png" alt="Brasão da Universidade Estadual de Santa Cruz">
+            </span>
+            <span>
+                <strong>PEI III</strong>
+                <small>UESC</small>
+            </span>
+        </a>
+        <nav class="nav" aria-label="Seções">
+            <button type="button" data-view="gasto" class="is-active" aria-current="page">01. Gasto</button>
+            <button type="button" data-view="codigo" aria-current="false">02. Código</button>
+            <button type="button" data-view="construcao" aria-current="false">03. Construção</button>
+        </nav>
+        <div class="topbar-actions">
+            <button type="button" class="btn btn-ghost" data-view="codigo">Firmware</button>
+            <button type="button" class="btn btn-solid" data-view="gasto" data-scroll="calculadora">Calcular</button>
         </div>
     </div>
+</header>
 
-    <h2>5. Consumo do ESP32</h2>
-    <p>Módulos ESP32 utilizados para monitoramento consomem em média <strong>0,79 Wh/h</strong> (0,79 W) por aparelho, em operação contínua de <strong>24 horas por dia</strong>. A tabela abaixo atualiza conforme a tarifa e os dias por mês definidos na calculadora.</p>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Quantidade</th>
-                    <th>Consumo Mensal (kWh)</th>
-                    <th>Custo Mensal (R$)</th>
-                </tr>
-            </thead>
-            <tbody id="esp32TableBody"></tbody>
-        </table>
+<main>
+    <section id="view-gasto" class="view" aria-labelledby="titulo-gasto">
+        <div class="shell">
+            <header class="hero">
+                <div>
+                    <p class="status-badge"><span></span>Relatório · Bahia</p>
+                    <h1 id="titulo-gasto">Gasto com ar-condicionado na UESC</h1>
+                    <p class="hero-kicker">Estimativa mensal para aparelhos split na Bahia, com comparativo entre o modelo convencional, a tecnologia Inverter e o consumo do ESP32 usado no monitoramento.</p>
+                </div>
+                <div class="wireframe" aria-hidden="true">
+                    <div class="blend-plate">
+                        <svg viewBox="0 0 360 360">
+                            <rect x="188" y="36" width="132" height="86" fill="#1A3C2B"/>
+                            <rect x="36" y="214" width="168" height="78" fill="#FF8C69"/>
+                            <rect x="214" y="228" width="104" height="64" fill="#F4D35E"/>
+                            <rect x="48" y="78" width="46" height="112" fill="#9EFFBF"/>
+                        </svg>
+                    </div>
+                    <svg viewBox="0 0 360 360">
+                        <circle cx="176" cy="188" r="96" fill="none" stroke="#1A3C2B" stroke-dasharray="3 4"/>
+                        <circle cx="176" cy="188" r="7" fill="#1A3C2B"/>
+                        <path d="M176 92v192M80 188h192" stroke="#3A3A38" stroke-opacity="0.35"/>
+                        <rect x="24" y="24" width="92" height="40" fill="none" stroke="#3A3A38" stroke-opacity="0.45"/>
+                        <path d="M24 24h46" stroke="#FF8C69"/>
+                        <rect x="250" y="292" width="78" height="28" fill="none" stroke="#3A3A38" stroke-opacity="0.45"/>
+                    </svg>
+                </div>
+            </header>
+        </div>
+
+        <section class="block" aria-labelledby="parametros">
+            <div class="shell">
+                <h2 id="parametros">Parâmetros da simulação</h2>
+                <ul class="bento stats">
+                    <li>
+                        <p class="cell-label">01 · Local</p>
+                        <strong>Bahia · Neoenergia Coelba</strong>
+                    </li>
+                    <li class="accent-mint">
+                        <p class="cell-label">02 · Tarifa</p>
+                        <strong>R$ 1,15 por kWh</strong>
+                    </li>
+                    <li class="accent-gold">
+                        <p class="cell-label">03 · Período</p>
+                        <strong>30 dias</strong>
+                    </li>
+                    <li class="accent-forest">
+                        <p class="cell-label">04 · Base</p>
+                        <strong>Split convencional On/Off</strong>
+                    </li>
+                </ul>
+                <p class="note">A tarifa é um valor médio estimado, já com impostos e bandeiras. As potências abaixo são médias de aparelhos split convencionais.</p>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="custo-um">
+            <div class="shell">
+                <h2 id="custo-um">Custo mensal de um aparelho</h2>
+                <p>Valores estimados na conta de luz depois de 30 dias de uso.</p>
+                <div class="panel">
+                    <div class="table-wrap table-wide">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Potência</th>
+                                    <th>Consumo médio</th>
+                                    <th>6 horas/dia</th>
+                                    <th>8 horas/dia</th>
+                                    <th>12 horas/dia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>9.000 BTUs</strong></td>
+                                    <td>~0,8 kW</td>
+                                    <td>R$ 165,60</td>
+                                    <td>R$ 220,80</td>
+                                    <td>R$ 331,20</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>12.000 BTUs</strong></td>
+                                    <td>~1,1 kW</td>
+                                    <td>R$ 227,70</td>
+                                    <td>R$ 303,60</td>
+                                    <td>R$ 455,40</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>18.000 BTUs</strong></td>
+                                    <td>~1,6 kW</td>
+                                    <td>R$ 331,20</td>
+                                    <td>R$ 441,60</td>
+                                    <td>R$ 662,40</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>24.000 BTUs</strong></td>
+                                    <td>~2,1 kW</td>
+                                    <td>R$ 434,70</td>
+                                    <td>R$ 579,60</td>
+                                    <td>R$ 869,40</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="custo-varios">
+            <div class="shell">
+                <h2 id="custo-varios">Vários aparelhos em 8 horas por dia</h2>
+                <p>Cenário de referência para salas e escritórios, com uso diário ao longo de 30 dias.</p>
+                <div class="panel">
+                    <div class="table-wrap table-wide">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Quantidade</th>
+                                    <th>9.000 BTUs</th>
+                                    <th>12.000 BTUs</th>
+                                    <th>18.000 BTUs</th>
+                                    <th>24.000 BTUs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>1 aparelho</strong></td>
+                                    <td>R$ 220,80</td>
+                                    <td>R$ 303,60</td>
+                                    <td>R$ 441,60</td>
+                                    <td>R$ 579,60</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>2 aparelhos</strong></td>
+                                    <td>R$ 441,60</td>
+                                    <td>R$ 607,20</td>
+                                    <td>R$ 883,20</td>
+                                    <td>R$ 1.159,20</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>3 aparelhos</strong></td>
+                                    <td>R$ 662,40</td>
+                                    <td>R$ 910,80</td>
+                                    <td>R$ 1.324,80</td>
+                                    <td>R$ 1.738,80</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>6 aparelhos</strong></td>
+                                    <td>R$ 1.324,80</td>
+                                    <td>R$ 1.821,60</td>
+                                    <td>R$ 2.649,60</td>
+                                    <td>R$ 3.477,60</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="calculadora">
+            <div class="shell">
+                <h2 id="calculadora">Calculadora e gráfico</h2>
+                <p>Ajuste a tarifa, a potência e o tempo de uso. O gráfico compara o custo convencional, o Inverter e o ESP32.</p>
+
+                <form class="tech-form">
+                    <span class="corner corner-tl" aria-hidden="true"></span>
+                    <span class="corner corner-tr" aria-hidden="true"></span>
+                    <span class="corner corner-bl" aria-hidden="true"></span>
+                    <span class="corner corner-br" aria-hidden="true"></span>
+                    <p class="cell-label">Entrada · simulação</p>
+                    <div class="grid-form">
+                        <div class="input-group">
+                            <label for="tarifa">Tarifa de energia (R$/kWh)</label>
+                            <input type="number" id="tarifa" value="1.15" step="0.01" min="0.5">
+                        </div>
+                        <div class="input-group">
+                            <label for="btus">Potência do aparelho (BTUs)</label>
+                            <select id="btus">
+                                <option value="0.8">9.000 BTUs</option>
+                                <option value="1.1">12.000 BTUs</option>
+                                <option value="1.6">18.000 BTUs</option>
+                                <option value="2.1">24.000 BTUs</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="horas">Horas de uso por dia</label>
+                            <input type="number" id="horas" value="8" min="1" max="24">
+                        </div>
+                        <div class="input-group">
+                            <label for="quantidade">Quantidade de aparelhos</label>
+                            <input type="number" id="quantidade" value="1" min="1" max="20">
+                        </div>
+                        <div class="input-group">
+                            <label for="dias">Dias por mês</label>
+                            <input type="number" id="dias" value="30" min="1" max="31">
+                        </div>
+                    </div>
+                </form>
+
+                <div class="results">
+                    <h3>Custo mensal estimado (convencional)</h3>
+                    <p class="price">R$ <span id="resultadoValor">220,80</span></p>
+                    <p class="subtitle">Simulação para <span id="resultadoDias">30</span> dias de uso</p>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="comparativoChart"></canvas>
+                </div>
+                <div class="table-wrap table-wide">
+                    <table class="economia-table">
+                        <caption>Economia do aparelho selecionado</caption>
+                        <thead>
+                            <tr>
+                                <th>Tipo de ar-condicionado</th>
+                                <th>Custo do ar-condicionado</th>
+                                <th>Custo do ESP32 (30 dias)</th>
+                                <th>Valor economizado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparativoEconomiaBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="potenciasChart"></canvas>
+                </div>
+                <div class="table-wrap table-wide">
+                    <table class="economia-table">
+                        <caption>Economia por potência</caption>
+                        <thead>
+                            <tr>
+                                <th>Tipo de ar-condicionado</th>
+                                <th>Custo do ar-condicionado</th>
+                                <th>Custo do ESP32 (30 dias)</th>
+                                <th>Valor economizado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="potenciasEconomiaBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="esp32">
+            <div class="shell">
+                <h2 id="esp32">Consumo do ESP32</h2>
+                <p>Cada módulo usado no monitoramento consome em média <strong>0,79 Wh/h</strong> (0,79 W), em operação contínua de <strong>24 horas por dia</strong>. A tabela acompanha a tarifa e os dias definidos na calculadora.</p>
+                <p class="status-badge"><span></span>0,79 W · 24 h</p>
+                <div class="panel">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Quantidade</th>
+                                    <th>Consumo mensal (kWh)</th>
+                                    <th>Custo mensal (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="esp32TableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <section id="view-codigo" class="view" hidden aria-labelledby="titulo-codigo">
+        <div class="shell">
+            <header class="hero">
+                <div>
+                    <p class="status-badge"><span></span>Firmware · ESP32</p>
+                    <h1 id="titulo-codigo">Detalhes do código</h1>
+                    <p class="hero-kicker">O sketch <code>sistema_web_desligar_ar-condiconando_PEI_III.ino</code> roda num ESP32 e liga ou desliga o ar-condicionado TCL por infravermelho. O painel e a API ficam no próprio módulo.</p>
+                </div>
+                <figure class="topology">
+                    <div class="topology-frame" role="img" aria-label="Três nós em órbita ao redor do ESP32: rede, relógio e painel.">
+                        <svg viewBox="0 0 400 400" aria-hidden="true">
+                            <circle cx="200" cy="200" r="140" fill="none" stroke="#3A3A38" stroke-opacity="0.4" stroke-dasharray="4 5"/>
+                        </svg>
+                        <div class="orbit-rotor">
+                            <svg viewBox="0 0 400 400" aria-hidden="true">
+                                <g stroke="#3A3A38" stroke-opacity="0.2">
+                                    <line x1="200" y1="200" x2="200" y2="60"/>
+                                    <line x1="200" y1="200" x2="321.24" y2="270"/>
+                                    <line x1="200" y1="200" x2="78.76" y2="270"/>
+                                </g>
+                                <rect x="192" y="52" width="16" height="16" fill="#FF8C69"/>
+                                <rect x="313.24" y="262" width="16" height="16" fill="#9EFFBF"/>
+                                <rect x="70.76" y="262" width="16" height="16" fill="#F4D35E"/>
+                            </svg>
+                        </div>
+                        <svg viewBox="0 0 400 400" aria-hidden="true">
+                            <rect x="192" y="192" width="16" height="16" fill="#1A3C2B"/>
+                            <text x="200" y="226" text-anchor="middle" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="1.5">ESP32</text>
+                        </svg>
+                    </div>
+                    <ul class="orbit-key">
+                        <li><i class="swatch coral"></i>Rede</li>
+                        <li><i class="swatch mint"></i>Relógio</li>
+                        <li><i class="swatch gold"></i>Painel</li>
+                    </ul>
+                </figure>
+            </header>
+        </div>
+
+        <section class="block">
+            <div class="shell">
+                <ul class="bento stats">
+                    <li>
+                        <p class="cell-label">01 · Placa</p>
+                        <strong>ESP32</strong>
+                    </li>
+                    <li class="accent-mint">
+                        <p class="cell-label">02 · Infravermelho</p>
+                        <strong>GPIO 4 · TCL112AC</strong>
+                    </li>
+                    <li class="accent-gold">
+                        <p class="cell-label">03 · Servidor</p>
+                        <strong>HTTP na porta 80</strong>
+                    </li>
+                    <li class="accent-forest">
+                        <p class="cell-label">04 · Nome na rede</p>
+                        <strong>ac-controller.local</strong>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Como o sketch está organizado</h2>
+                <p>O arquivo separa configuração, protocolo do controle, API, portal da universidade e o ciclo principal.</p>
+                <ul class="bento">
+                    <li>
+                        <p class="cell-label">01 · Configuração</p>
+                        <p>Rede Wi-Fi da UESC, relógio NTP em UTC−3, tempos de espera e o pino do LED infravermelho.</p>
+                        <div class="mock" aria-hidden="true">
+                            <span class="mock-chip coral">CFG</span>
+                            <pre>wifi     uesc
+ntp      utc−3
+retry    30 s
+led      gpio 4</pre>
+                        </div>
+                    </li>
+                    <li class="accent-mint">
+                        <p class="cell-label">02 · Comandos IR</p>
+                        <p>Dois estados completos do protocolo TCL112AC: ligar e desligar.</p>
+                        <div class="mock" aria-hidden="true">
+                            <span class="mock-chip mint">IR</span>
+                            <pre>proto    tcl112ac
+freq     38 khz
+on       byte 5 = 24
+off      byte 5 = 20</pre>
+                        </div>
+                    </li>
+                    <li class="accent-gold">
+                        <p class="cell-label">03 · Agenda e API</p>
+                        <p>Até 10 horários, gravados na flash pelo <code>Preferences</code> no namespace <code>ac-controller</code>. Rotas de estado, energia e horários, protegidas pelo cabeçalho <code>X-API-Key</code>.</p>
+                        <div class="mock" aria-hidden="true">
+                            <span class="mock-chip gold">401</span>
+                            <pre>store    preferences
+ns       ac-controller
+slots    10
+header   x-api-key</pre>
+                        </div>
+                    </li>
+                    <li class="accent-forest">
+                        <p class="cell-label">04 · Painel e portal</p>
+                        <p>A rota <code>/</code> entrega o painel de controle que roda dentro do ESP32. Esta página de gasto é um relatório à parte. O portal cativo autentica na rede da universidade quando a internet ainda está interceptada. O HTTP sobe na hora. A rede segue em paralelo, no outro núcleo do ESP32.</p>
+                        <div class="mock" aria-hidden="true">
+                            <span class="mock-chip forest">NET</span>
+                            <pre>get      /
+core 0   rede
+core 1   http
+portal   fortigate</pre>
+                        </div>
+                    </li>
+                </ul>
+                <p class="callout">As credenciais da rede, o usuário do portal e a chave da API ficam somente no firmware. Esta página não publica esses valores.</p>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Dois núcleos</h2>
+                <p>O login no portal pode levar vários segundos. Essa espera roda numa task do FreeRTOS no núcleo 0, para o painel no núcleo 1 continuar respondendo.</p>
+                <div class="split">
+                    <article class="card">
+                        <p class="status-badge"><span></span>Núcleo 0</p>
+                        <h3>Rede</h3>
+                        <ul>
+                            <li>Conecta ao Wi-Fi e tenta de novo a cada 30 segundos.</li>
+                            <li>Espera o DHCP estabilizar antes de usar o IP.</li>
+                            <li>Publica o endereço <code>ac-controller.local</code> por mDNS.</li>
+                            <li>Sincroniza o relógio com <code>pool.ntp.org</code>.</li>
+                            <li>Testa a internet a cada 60 segundos. Se falhar, tenta o portal a cada 15 segundos.</li>
+                        </ul>
+                    </article>
+                    <article class="card">
+                        <p class="status-badge"><span></span>Núcleo 1</p>
+                        <h3>Operação</h3>
+                        <ul>
+                            <li>Atende as requisições HTTP.</li>
+                            <li>Envia o infravermelho depois que a API já respondeu.</li>
+                            <li>Confere os agendamentos a cada 1 segundo.</li>
+                            <li>Mantém o sono do rádio Wi-Fi desligado, para reduzir a latência do painel.</li>
+                            <li>A potência de transmissão fica em 19,5 dBm.</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>O que acontece ao ligar</h2>
+                <ol class="steps">
+                    <li><strong>setup</strong> abre a serial, inicia o emissor IR, lê os horários da flash e sobe o servidor sem esperar o Wi-Fi.</li>
+                    <li>A task de rede conecta, publica o mDNS, ajusta o relógio e libera a internet no portal FortiGate da UESC.</li>
+                    <li>O painel do ESP32, ou outro cliente, chama a API com o cabeçalho <code>X-API-Key</code>.</li>
+                    <li>A rota de energia responde o JSON na hora e deixa o comando infravermelho pendente.</li>
+                    <li>O <strong>loop</strong> emite o quadro TCL e, a cada segundo, executa o horário do dia uma única vez.</li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Infravermelho TCL</h2>
+                <p>A biblioteca IRremoteESP8266 envia o protocolo TCL112AC: 112 bits a 38 kHz, pelo GPIO 4. O controle não manda uma tecla isolada. Ele manda o estado inteiro do aparelho. Ligar e desligar usam o mesmo estado, com o bit de energia no byte 5 e o checksum no byte 13.</p>
+                <div class="panel">
+                    <div class="table-wrap">
+                        <table class="bytes-table">
+                            <thead>
+                                <tr>
+                                    <th>Byte</th>
+                                    <th>Conteúdo</th>
+                                    <th>Função</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>0–2</td>
+                                    <td><code>23 CB 26</code></td>
+                                    <td>Cabeçalho fixo TCL</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td><code>01</code></td>
+                                    <td>Mensagem normal</td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td><code>24</code> ou <code>20</code></td>
+                                    <td>Ligado ou desligado</td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td><code>03</code></td>
+                                    <td>Modo resfriar</td>
+                                </tr>
+                                <tr>
+                                    <td>7</td>
+                                    <td><code>07</code></td>
+                                    <td>24 °C (31 − 7)</td>
+                                </tr>
+                                <tr>
+                                    <td>8</td>
+                                    <td><code>40</code></td>
+                                    <td>Ventilador automático</td>
+                                </tr>
+                                <tr>
+                                    <td>12</td>
+                                    <td><code>80</code></td>
+                                    <td>Identificação TCL do modelo</td>
+                                </tr>
+                                <tr>
+                                    <td>13</td>
+                                    <td>checksum</td>
+                                    <td>Soma dos bytes 0 a 12, recalculada no envio</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="note">O estado padrão ao ligar é resfriar, 24 °C e ventilação automática. A temperatura aceita o intervalo de 16 °C a 31 °C, em passos de 0,5 °C. O quadro é compatível com aparelhos TCL do protocolo TCL112AC, como as linhas TAC-09/12/18/24 e o controle GYKQ-52. A linha do controle GYKQ-58 usa outro protocolo e estes estados não servem para ela.</p>
+                <p class="note">Pela API, a resposta HTTP sai primeiro e o LED infravermelho dispara no loop. Pelos agendamentos, o quadro sai no instante em que o horário fecha.</p>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Rotas da API</h2>
+                <p>Todas as rotas, fora a página inicial, exigem o cabeçalho <code>X-API-Key</code>. Sem a chave, a resposta é <code>401</code>.</p>
+                <div class="panel">
+                    <div class="table-wrap">
+                        <table class="api-table">
+                            <thead>
+                                <tr>
+                                    <th>Método</th>
+                                    <th>Rota</th>
+                                    <th>Função</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="method get">GET</span></td>
+                                    <td><code>/</code></td>
+                                    <td>Painel de controle embarcado</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method get">GET</span></td>
+                                    <td><code>/status</code></td>
+                                    <td>Energia, Wi-Fi, internet, IP, hora e limite de horários</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method post">POST</span></td>
+                                    <td><code>/power/on</code></td>
+                                    <td>Liga o ar-condicionado</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method post">POST</span></td>
+                                    <td><code>/power/off</code></td>
+                                    <td>Desliga o ar-condicionado</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method post">POST</span></td>
+                                    <td><code>/power/toggle</code></td>
+                                    <td>Inverte o estado atual</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method get">GET</span></td>
+                                    <td><code>/schedules</code></td>
+                                    <td>Lista os horários ativos</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method post">POST</span></td>
+                                    <td><code>/schedule</code></td>
+                                    <td>Cria um horário: hora, minuto, ação e dias</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method del">DELETE</span></td>
+                                    <td><code>/schedule</code></td>
+                                    <td>Remove um horário pelo id</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Agendamentos</h2>
+                <div class="split">
+                    <article class="card">
+                        <h3>Formato</h3>
+                        <p>Cada horário guarda hora, minuto, ação (<code>on</code> ou <code>off</code>) e uma máscara de 7 caracteres. O primeiro caractere é domingo e o último é sábado. <code>1</code> ativa o dia e <code>0</code> deixa o dia de fora.</p>
+                        <p class="mono">POST /schedule?hour=18&amp;minute=0&amp;action=off&amp;days=0111110</p>
+                        <p class="note">O exemplo desliga às 18:00, de segunda a sexta.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Persistência</h3>
+                        <ul>
+                            <li>Até 10 horários. Acima disso a API responde <code>507</code>.</li>
+                            <li>A gravação na flash acontece depois da resposta HTTP.</li>
+                            <li>A marca do último disparo fica só na RAM, para não reescrever a flash todo dia.</li>
+                            <li>O mesmo horário não dispara duas vezes no mesmo dia.</li>
+                            <li>Sem hora válida do NTP, nenhum horário é executado.</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <h2>Rede da universidade</h2>
+                <p>O Wi-Fi da UESC entrega o endereço local e, em seguida, o portal FortiGate pede autenticação. O firmware trata isso sem travar o painel.</p>
+                <div class="card solo-card">
+                    <ul>
+                        <li>Uma consulta de conectividade confirma se a internet está livre ou se a resposta ainda é a página do portal.</li>
+                        <li>Se o portal interceptar, o código localiza o redirecionamento, obtém o identificador da sessão e conclui o login.</li>
+                        <li>Quedas curtas de Wi-Fi esperam 5 segundos pelo reconectamento automático antes de forçar uma nova tentativa.</li>
+                        <li>O servidor HTTP já está no ar enquanto a associação e o portal terminam.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <section id="view-construcao" class="view" hidden aria-labelledby="titulo-construcao">
+        <div class="shell">
+            <header class="hero">
+                <div>
+                    <p class="status-badge"><span></span>Protótipo · montagem</p>
+                    <h1 id="titulo-construcao">Construção</h1>
+                    <p class="hero-kicker">Sete passos para reconhecer a case, ligar a bateria e o LED no GPIO 4 e gravar o sketch no ESP32.</p>
+                </div>
+                <div class="case-frame">
+                    <img src="case.png" alt="Case impressa em 3D, aberta, com a tampa ao lado. A base tem frestas, um furo redondo e postes internos.">
+                </div>
+            </header>
+        </div>
+
+        <section class="block" aria-labelledby="materiais-montagem">
+            <div class="shell">
+                <h2 id="materiais-montagem" class="plain">Materiais</h2>
+                <p>Cada item entra uma vez. A case da foto é a caixa impressa deste protótipo.</p>
+                <ul class="bento">
+                    <li>
+                        <p class="cell-label">01 · Case</p>
+                        <strong class="slot-value">Impressa em 3D</strong>
+                    </li>
+                    <li class="accent-mint">
+                        <p class="cell-label">02 · Placa</p>
+                        <strong class="slot-value">ESP32</strong>
+                    </li>
+                    <li class="accent-gold">
+                        <p class="cell-label">03 · Célula</p>
+                        <strong class="slot-value">18650 · 3,7 V</strong>
+                    </li>
+                    <li class="accent-forest">
+                        <p class="cell-label">04 · Carga</p>
+                        <strong class="slot-value">USB-C com BMS</strong>
+                    </li>
+                    <li>
+                        <p class="cell-label">05 · Emissor</p>
+                        <strong class="slot-value">LED infravermelho</strong>
+                    </li>
+                    <li class="accent-coral">
+                        <p class="cell-label">06 · Resistor</p>
+                        <strong class="slot-value">10 Ω</strong>
+                    </li>
+                </ul>
+                <p class="note">A célula está marcada como 6800 mAh. O kit USB-C reúne carregador, proteção BMS e suporte.</p>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Reconhecer a case</h2>
+                        <p>A base e a tampa se separam. Por dentro há postes para aparafusar a placa. Numa lateral ficam as frestas; ao lado delas, um furo redondo.</p>
+                        <p>As frestas continuam desobstruídas. O furo redondo é a saída do infravermelho, apontada para o ar-condicionado.</p>
+                        <ul class="legend">
+                            <li><i class="swatch coral"></i>Frestas</li>
+                            <li><i class="swatch mint"></i>Furo do LED</li>
+                            <li><i class="swatch gold"></i>Postes</li>
+                            <li><i class="swatch forest"></i>Tampa</li>
+                        </ul>
+                    </div>
+                    <div class="stage">
+                        <img src="case.png" alt="Vista da case aberta e da tampa, com frestas e furo na lateral da base.">
+                        <span class="scanline" aria-hidden="true"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Encaixar a bateria</h2>
+                        <p>A 18650 entra no suporte do kit, no sentido do desenho. O lado chato é o negativo e encosta na mola. O botão do outro extremo é o positivo.</p>
+                        <p>O conector USB-C desse kit só carrega a célula. A energia do ESP32 sai dos bornes protegidos pelo BMS, no passo seguinte.</p>
+                    </div>
+                    <div class="stage" aria-hidden="true">
+                        <svg viewBox="0 0 440 220">
+                            <rect x="78" y="68" width="250" height="78" fill="#F7F7F5" stroke="#1A3C2B" stroke-width="1.5"/>
+                            <path d="M96 107 h10 l5-10 6 20 6-20 6 20 6-10 h8" fill="none" stroke="#FF8C69" stroke-width="1.5"/>
+                            <text x="92" y="58" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">mola · negativo</text>
+                            <text x="214" y="58" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">botão · positivo</text>
+                            <g class="cell">
+                                <rect x="150" y="82" width="150" height="50" fill="#1A3C2B"/>
+                                <rect x="300" y="96" width="14" height="22" fill="#F4D35E"/>
+                                <text x="168" y="112" fill="#F7F7F5" font-family="JetBrains Mono, monospace" font-size="12">18650 · 3,7 V</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Alimentar o ESP32</h2>
+                        <p>Use a saída que fica depois da proteção, marcada OUT+ e OUT−. O positivo vai ao pino VIN, também escrito 5V em várias placas DevKit. O negativo vai a um GND.</p>
+                        <p class="callout">A célula fica entre 3,0 V e 4,2 V. Esse fio não entra no pino 3V3: 4,2 V passa do limite do módulo. Na hora de gravar o programa, solte o VIN e deixe só o cabo USB do computador alimentando a placa.</p>
+                    </div>
+                    <div class="stage" aria-hidden="true">
+                        <svg viewBox="0 0 440 240">
+                            <rect x="28" y="48" width="150" height="150" fill="#F7F7F5" stroke="#1A3C2B"/>
+                            <rect x="78" y="68" width="50" height="22" fill="none" stroke="#1A3C2B"/>
+                            <text x="44" y="116" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">USB-C · BMS</text>
+                            <text x="40" y="138" fill="#FF8C69" font-family="JetBrains Mono, monospace" font-size="11">OUT+</text>
+                            <text x="40" y="186" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">OUT−</text>
+                            <rect x="292" y="36" width="120" height="168" fill="#F7F7F5" stroke="#1A3C2B"/>
+                            <rect x="322" y="36" width="60" height="14" fill="#1A3C2B"/>
+                            <text x="312" y="78" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="12">ESP32</text>
+                            <text x="308" y="148" fill="#FF8C69" font-family="JetBrains Mono, monospace" font-size="11">VIN</text>
+                            <text x="308" y="192" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">GND</text>
+                            <path class="wire" pathLength="100" d="M178 132 H248 V142 H292" fill="none" stroke="#FF8C69" stroke-width="1.5"/>
+                            <path class="wire" pathLength="100" d="M178 180 H236 V186 H292" fill="none" stroke="#1A3C2B" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Ligar o infravermelho</h2>
+                        <p>O sketch usa o pino 4. A série é esta: GPIO 4, resistor de 10 Ω, perna longa do LED e, no fim, a perna curta no GND. A perna longa é o positivo. O lado chato da cápsula marca a perna curta.</p>
+                        <p>A cúpula do LED fica virada para o furo redondo da case, por dentro.</p>
+                        <p class="callout">O GPIO entrega 3,3 V e o LED conduz por volta de 1,3 V. Com 10 Ω, o pico de corrente fica alto para o pino. O resistor permanece no caminho: sem ele, o pino queima. O programa só manda rajadas curtas a 38 kHz. Não deixe o pino 4 em nível alto o tempo todo.</p>
+                    </div>
+                    <div class="stage" aria-hidden="true">
+                        <svg viewBox="0 0 440 220">
+                            <rect x="24" y="78" width="72" height="48" fill="#1A3C2B"/>
+                            <text x="38" y="106" fill="#F7F7F5" font-family="JetBrains Mono, monospace" font-size="12">GPIO 4</text>
+                            <path d="M128 102 h18 l10-16 16 32 16-32 16 32 10-16 h18" fill="none" stroke="#1A3C2B" stroke-width="1.5"/>
+                            <text x="146" y="78" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="12">10 Ω</text>
+                            <path d="M250 78 L292 102 L250 126 Z" fill="none" stroke="#1A3C2B" stroke-width="1.5"/>
+                            <path d="M296 84 V120" stroke="#1A3C2B" stroke-width="1.5"/>
+                            <text x="248" y="156" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">perna longa → curta</text>
+                            <path class="wire" pathLength="100" d="M96 102 H128" fill="none" stroke="#FF8C69" stroke-width="1.5"/>
+                            <path class="wire" pathLength="100" d="M232 102 H250" fill="none" stroke="#FF8C69" stroke-width="1.5"/>
+                            <path class="wire" pathLength="100" d="M300 102 H360 V168 H24 V126" fill="none" stroke="#3A3A38" stroke-width="1.5"/>
+                            <text x="360" y="188" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">GND</text>
+                            <g class="ir-beam" stroke="#FF8C69" fill="none" stroke-width="1.5">
+                                <path d="M318 88 a28 28 0 0 1 0 28"/>
+                                <path d="M330 76 a44 44 0 0 1 0 52"/>
+                                <path d="M342 64 a60 60 0 0 1 0 76"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Acomodar e fechar</h2>
+                        <p>Com a tampa fora, assente o ESP32 nos postes, com o USB alcançável enquanto a caixa está aberta. O suporte da 18650 fica ao lado, sem cobrir as frestas. O LED encosta por dentro no furo redondo.</p>
+                        <p>Confira de novo: VIN no positivo protegido, GND comum, GPIO 4 no resistor e a perna curta no GND. Só então feche a tampa nos quatro cantos.</p>
+                    </div>
+                    <div class="stage" aria-hidden="true">
+                        <svg viewBox="0 0 440 260">
+                            <rect x="40" y="28" width="360" height="204" fill="#F7F7F5" stroke="#1A3C2B" stroke-width="1.5"/>
+                            <path d="M40 78 H58 M40 98 H58 M40 118 H58 M40 138 H58 M40 158 H58" stroke="#FF8C69" stroke-width="2"/>
+                            <circle cx="78" cy="196" r="10" fill="none" stroke="#9EFFBF" stroke-width="2"/>
+                            <text x="96" y="200" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">furo</text>
+                            <g class="part">
+                                <rect x="250" y="48" width="120" height="78" fill="#1A3C2B"/>
+                                <text x="274" y="92" fill="#F7F7F5" font-family="JetBrains Mono, monospace" font-size="12">ESP32</text>
+                            </g>
+                            <g class="part part-2">
+                                <rect x="150" y="142" width="150" height="48" fill="#F4D35E" stroke="#1A3C2B"/>
+                                <text x="186" y="171" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="12">18650</text>
+                            </g>
+                            <g class="part part-3">
+                                <circle cx="78" cy="196" r="5" fill="#FF8C69"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Gravar o programa</h2>
+                        <p>A bateria fica desligada do VIN durante a gravação. O cabo USB do ESP32 alimenta a placa e leva o sketch.</p>
+                        <ol class="steps">
+                            <li>No Arduino IDE, em Preferências, cole a URL das placas Espressif: <code>https://espressif.github.io/arduino-esp32/package_esp32_index.json</code></li>
+                            <li>No gerenciador de placas, instale <strong>esp32</strong> da Espressif e escolha a placa <strong>ESP32 Dev Module</strong>.</li>
+                            <li>No gerenciador de bibliotecas, instale <strong>IRremoteESP8266</strong>. Ela traz o protocolo TCL usado pelo sketch.</li>
+                            <li>Abra <code>sistema_web_desligar_ar-condiconando_PEI_III.ino</code>. Rede e chave da API ficam só nesse arquivo.</li>
+                            <li>Selecione a porta que apareceu com o cabo e use Upload. Se a placa não responder em “Connecting”, segure BOOT, toque em EN e solte BOOT.</li>
+                            <li>Abra o monitor serial em <strong>115200</strong>. A linha esperada cita o emissor TCL112AC no pino 4.</li>
+                        </ol>
+                    </div>
+                    <div class="stage ide">
+                        <p class="ide-line">Placa · ESP32 Dev Module</p>
+                        <p class="ide-line">Biblioteca · IRremoteESP8266</p>
+                        <p class="ide-line">Sketch · PEI_III.ino</p>
+                        <p class="ide-line">Serial · 115200</p>
+                        <div class="upload-bar" aria-hidden="true"><span></span></div>
+                        <p class="cell-label">Gravando pelo USB</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div class="shell">
+                <div class="build-grid">
+                    <div class="build-copy">
+                        <h2>Apontar e testar</h2>
+                        <p>Religue a saída da bateria no VIN e desconecte o USB. Feche a tampa. O furo da case fica de frente para a evaporadora TCL, a poucos metros, sem obstáculo no meio.</p>
+                        <p>No navegador, abra o painel em <code>ac-controller.local</code> ou no IP que o monitor serial mostrar. Envie ligar e depois desligar. O aparelho compatível com TCL112AC responde em modo resfriar, a 24 °C.</p>
+                        <p class="note">O infravermelho não se vê. Os arcos do desenho só mostram o caminho do furo até o ar.</p>
+                    </div>
+                    <div class="stage" aria-hidden="true">
+                        <svg viewBox="0 0 440 220">
+                            <rect x="28" y="48" width="120" height="120" fill="#F4D35E" stroke="#1A3C2B"/>
+                            <circle cx="128" cy="108" r="8" fill="#FF8C69"/>
+                            <text x="48" y="196" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">case · furo</text>
+                            <g class="ir-beam" stroke="#FF8C69" fill="none" stroke-width="1.5">
+                                <path d="M148 92 a36 36 0 0 1 0 32"/>
+                                <path d="M168 76 a56 56 0 0 1 0 64"/>
+                                <path d="M192 60 a76 76 0 0 1 0 96"/>
+                            </g>
+                            <rect x="300" y="40" width="112" height="78" fill="#F7F7F5" stroke="#1A3C2B"/>
+                            <path d="M318 78 H394" stroke="#9EFFBF" stroke-width="4"/>
+                            <text x="318" y="150" fill="#1A3C2B" font-family="JetBrains Mono, monospace" font-size="11">TCL · evaporadora</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="faca-voce-mesmo">
+            <div class="shell">
+                <h2 id="faca-voce-mesmo" class="plain">Faça você mesmo</h2>
+                <p>As seis peças do protótipo, com a foto de cada uma. O botão abre a busca correspondente no Mercado Livre. A case não está à venda: ela é impressa a partir do arquivo do projeto.</p>
+                <ul class="diy">
+                    <li>
+                        <figure>
+                            <img src="case.png" alt="Case amarela impressa em 3D, aberta, com a tampa ao lado.">
+                        </figure>
+                        <p class="cell-label">01 · 1 unidade</p>
+                        <h3>Case impressa</h3>
+                        <p>Caixa deste protótipo. O desenho para a impressora está em <code>case.scade</code>.</p>
+                        <a class="btn btn-ghost" href="case.scade" download>Baixar o modelo</a>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="peca-esp32.jpg" alt="Placa preta com módulo metálico ESP32, conector USB e furos nas laterais.">
+                        </figure>
+                        <p class="cell-label">02 · 1 unidade</p>
+                        <h3>ESP32</h3>
+                        <p>Placa de desenvolvimento com Wi-Fi, cerca de 30 pinos, VIN e GPIO 4. A serigrafia da placa comprada é quem nomeia os pinos.</p>
+                        <a class="btn btn-solid" href="https://lista.mercadolivre.com.br/placa-esp32-30-pinos-wifi-bluetooth" target="_blank" rel="noopener noreferrer">Mercado Livre</a>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="peca-18650.jpg" alt="Duas células 18650, uma azul em pé e uma prateada deitada, ao lado de uma pilha branca menor.">
+                        </figure>
+                        <p class="cell-label">03 · 1 unidade</p>
+                        <h3>18650 · 3,7 V</h3>
+                        <p>Célula Li-ion recarregável, marcada 6800 mAh. Na foto, as duas maiores são 18650. A pilha branca curta não entra. O protótipo usa uma célula.</p>
+                        <a class="btn btn-solid" href="https://lista.mercadolivre.com.br/bateria-li-ion-18650-6800mah-3-7v" target="_blank" rel="noopener noreferrer">Mercado Livre</a>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="peca-tp4056.jpg" alt="Placa azul de carga com conector micro-USB e bornes OUT+, B+ e B−.">
+                        </figure>
+                        <p class="cell-label">04 · 1 kit</p>
+                        <h3>USB-C com BMS</h3>
+                        <p>Carregador, proteção e suporte da 18650. A saída protegida vai ao VIN, nunca ao 3V3. A placa da foto tem micro-USB; a busca pede o kit USB-C com suporte.</p>
+                        <a class="btn btn-solid" href="https://lista.mercadolivre.com.br/kit-carregador-18650-usb-c-bms-suporte" target="_blank" rel="noopener noreferrer">Mercado Livre</a>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="peca-led.jpg" alt="LED de 5 mm com lente transparente e duas pernas metálicas.">
+                        </figure>
+                        <p class="cell-label">05 · 1 unidade</p>
+                        <h3>LED infravermelho</h3>
+                        <p>Emissor de 5 mm, lente transparente. A perna longa segue o resistor. O lado chato marca a perna curta, que vai ao GND. Deixe de lado anúncios de receptor.</p>
+                        <a class="btn btn-solid" href="https://lista.mercadolivre.com.br/led-emissor-infravermelho-5mm" target="_blank" rel="noopener noreferrer">Mercado Livre</a>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="peca-resistor.jpg" alt="Seis resistores axiais com faixas coloridas sobre fundo branco.">
+                        </figure>
+                        <p class="cell-label">06 · 1 unidade</p>
+                        <h3>Resistor 10 Ω</h3>
+                        <p>1/4 W, faixas marrom, preto, preto e dourado. Fica em série no GPIO 4, e o pino só recebe pulsos.</p>
+                        <a class="btn btn-solid" href="https://lista.mercadolivre.com.br/resistor-10-ohms-1-4w" target="_blank" rel="noopener noreferrer">Mercado Livre</a>
+                    </li>
+                </ul>
+                <p class="note">As fotos da <a href="https://commons.wikimedia.org/wiki/File:18650_Li-ion_%26_Panasonic_CR123A_20121116.jpg">bateria</a>, do <a href="https://commons.wikimedia.org/wiki/File:TP4056_board_P1089956.jpg">carregador</a> e do <a href="https://commons.wikimedia.org/wiki/File:Electronic-Axial-Lead-Resistors-Array.jpg">resistor</a> vêm do Wikimedia Commons. Elas mostram o tipo da peça, não o anúncio. Confira 3,7 V, uma unidade e o valor de 10 Ω antes de comprar.</p>
+            </div>
+        </section>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="shell footer-inner">
+        <span class="footer-brand"><img src="brasao-uesc.png" alt="">Universidade Estadual de Santa Cruz</span>
+        <span>PEI III · Consumo e controle de ar-condicionado</span>
     </div>
-
-    <!-- <h2>6. Informações Extras para Economia</h2>
-    <div class="extras-section">
-        <div class="extra-card">
-            <h3>❄️ A Regra dos 23ºC</h3>
-            <p>Muitas pessoas colocam o ar no 16ºC achando que vai gelar mais rápido. Isso é um mito. O aparelho trabalha na potência máxima até atingir a temperatura. Manter o controle em <strong>23ºC ou 24ºC</strong> garante conforto térmico e economiza até 20% na conta de luz, evitando que o compressor fique sobrecarregado.</p>
-        </div>
-        
-        <div class="extra-card">
-            <h3>⚡ Tecnologia Inverter</h3>
-            <p>Modelos convencionais ligam e desligam o compressor repentinamente (gerando picos de energia). O compressor Inverter trabalha de forma contínua e ajusta a rotação conforme a necessidade. Isso pode gerar uma <strong>economia de 40% a 60%</strong> no consumo mensal em relação aos modelos antigos.</p>
-        </div>
-        
-        <div class="extra-card">
-            <h3>🧹 Limpeza dos Filtros</h3>
-            <p>Filtros sujos bloqueiam a saída de ar, forçando o aparelho a trabalhar muito mais para resfriar o mesmo ambiente. Lave os filtros com água corrente a cada <strong>15 ou 30 dias</strong>. Além de economizar energia, isso evita problemas respiratórios causados por ácaros e poeira.</p>
-        </div>
-        
-        <div class="extra-card">
-            <h3>📏 Dimensionamento Certo</h3>
-            <p>Comprar um ar de 9.000 BTUs para uma sala que exige 18.000 BTUs fará o aparelho trabalhar no máximo o tempo todo, consumindo muita energia e quebrando rápido. Calcule cerca de <strong>600 BTUs por metro quadrado</strong>, somando 600 BTUs extras para cada pessoa ou equipamento eletrônico no ambiente.</p>
-        </div>
-    </div> -->
-</div>
+</footer>
 
 <script>
+    const TITULOS = {
+        gasto: "Gasto UESC · PEI III",
+        codigo: "Detalhes do código · PEI III",
+        construcao: "Construção · PEI III"
+    };
+
+    const views = {
+        gasto: document.getElementById("view-gasto"),
+        codigo: document.getElementById("view-codigo"),
+        construcao: document.getElementById("view-construcao")
+    };
+
+    function showView(name, updateHash, keepPosition) {
+        if (!views[name]) name = "gasto";
+        document.documentElement.removeAttribute("data-start");
+
+        Object.entries(views).forEach(([key, el]) => {
+            el.hidden = key !== name;
+        });
+
+        document.querySelectorAll(".nav [data-view]").forEach((btn) => {
+            const ativo = btn.dataset.view === name;
+            btn.classList.toggle("is-active", ativo);
+            btn.setAttribute("aria-current", ativo ? "page" : "false");
+        });
+
+        document.title = TITULOS[name];
+        if (updateHash !== false) {
+            history.replaceState(null, "", "#" + name);
+        }
+        if (!keepPosition) window.scrollTo(0, 0);
+
+        if (name === "gasto" && typeof comparativoChart !== "undefined") {
+            requestAnimationFrame(() => {
+                comparativoChart.resize();
+                potenciasChart.resize();
+                calcular();
+            });
+        }
+    }
+
+    document.addEventListener("click", (event) => {
+        const trigger = event.target.closest("[data-view]");
+        if (!trigger) return;
+        event.preventDefault();
+        const targetId = trigger.dataset.scroll;
+        showView(trigger.dataset.view, true, Boolean(targetId));
+        if (targetId) {
+            const el = document.getElementById(targetId);
+            if (el) {
+                const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+            }
+        }
+    });
+
+    window.addEventListener("hashchange", () => {
+        const name = location.hash.replace("#", "");
+        if (views[name]) showView(name, false);
+    });
+
     const POTENCIAS = [
-        { label: '9.000 BTUs', kw: 0.8 },
-        { label: '12.000 BTUs', kw: 1.1 },
-        { label: '18.000 BTUs', kw: 1.6 },
-        { label: '24.000 BTUs', kw: 2.1 }
+        { label: "9.000 BTUs", kw: 0.8 },
+        { label: "12.000 BTUs", kw: 1.1 },
+        { label: "18.000 BTUs", kw: 1.6 },
+        { label: "24.000 BTUs", kw: 2.1 }
     ];
 
-    const ESP32_KW = 0.79 / 1000; // 0,79 Wh/h = 0,79 W
+    const ESP32_KW = 0.79 / 1000;
     const ESP32_HORAS_DIA = 24;
     const ESP32_DIAS = 30;
+    const MONO = "JetBrains Mono, ui-monospace, monospace";
+    const FOREST = "#1A3C2B";
+    const GRID = "#3A3A38";
 
-    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+    const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+    const tickFont = (size) => ({ family: MONO, size: size });
 
     const chartOptions = {
         responsive: true,
@@ -490,65 +2268,70 @@
         plugins: {
             legend: {
                 display: true,
-                position: 'top',
+                position: "top",
                 labels: {
-                    boxWidth: 12,
-                    font: { size: isMobile() ? 10 : 12 },
+                    boxWidth: 8,
+                    boxHeight: 8,
+                    color: GRID,
+                    font: tickFont(isMobile() ? 10 : 11),
                     padding: isMobile() ? 8 : 12
                 }
             },
             tooltip: {
+                backgroundColor: FOREST,
+                titleColor: "#F7F7F5",
+                bodyColor: "#F7F7F5",
+                cornerRadius: 0,
+                padding: 10,
+                titleFont: tickFont(11),
+                bodyFont: tickFont(11),
                 callbacks: {
-                    label: function(ctx) {
-                        return ctx.dataset.label + ': R$ ' + Number(ctx.raw).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    label: function (ctx) {
+                        return ctx.dataset.label + ": R$ " + Number(ctx.raw).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
                 }
             }
         },
         scales: {
             x: {
+                grid: { color: "rgba(58, 58, 56, 0.12)" },
+                border: { color: "rgba(58, 58, 56, 0.28)" },
                 ticks: {
+                    color: GRID,
                     maxRotation: isMobile() ? 45 : 0,
                     minRotation: isMobile() ? 30 : 0,
-                    font: { size: isMobile() ? 9 : 12 },
+                    font: tickFont(isMobile() ? 9 : 11),
                     autoSkip: false
                 }
             },
             y: {
                 beginAtZero: true,
+                grid: { color: "rgba(58, 58, 56, 0.12)" },
+                border: { color: "rgba(58, 58, 56, 0.28)" },
                 ticks: {
-                    font: { size: isMobile() ? 10 : 12 },
-                    callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                    color: GRID,
+                    font: tickFont(isMobile() ? 10 : 11),
+                    callback: function (value) { return "R$ " + value.toLocaleString("pt-BR"); }
                 }
             }
         }
     };
 
     const labelsComparativo = () => isMobile()
-        ? ['Convencional', 'Inverter', 'ESP32']
-        : ['Convencional (On/Off)', 'Tecnologia Inverter (Até 50% mais econômico)', 'ESP32 (30 dias)'];
+        ? ["Convencional", "Inverter", "ESP32"]
+        : ["Convencional (On/Off)", "Tecnologia Inverter (até 50% mais econômico)", "ESP32 (30 dias)"];
 
-    // Gráfico: Convencional vs Inverter (aparelho selecionado)
-    const ctx = document.getElementById('comparativoChart').getContext('2d');
+    const ctx = document.getElementById("comparativoChart").getContext("2d");
     let comparativoChart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
             labels: labelsComparativo(),
             datasets: [{
-                label: 'Custo Mensal (R$)',
+                label: "Custo mensal (R$)",
                 data: [0, 0, 0],
-                backgroundColor: [
-                    'rgba(239, 68, 68, 0.7)',
-                    'rgba(34, 197, 94, 0.7)',
-                    'rgba(99, 102, 241, 0.7)'
-                ],
-                borderColor: [
-                    'rgb(220, 38, 38)',
-                    'rgb(22, 163, 74)',
-                    'rgb(79, 70, 229)'
-                ],
-                borderWidth: 1,
-                borderRadius: 4
+                backgroundColor: ["#FF8C69", "#1A3C2B", "#F4D35E"],
+                borderWidth: 0,
+                borderRadius: 0
             }]
         },
         options: {
@@ -558,43 +2341,40 @@
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: isMobile() ? 'Convencional vs Inverter' : 'Comparativo: Convencional vs Inverter',
-                    font: { size: isMobile() ? 13 : 16 }
+                    text: isMobile() ? "Convencional vs Inverter" : "Comparativo: convencional vs Inverter",
+                    font: tickFont(isMobile() ? 11 : 12),
+                    color: FOREST
                 }
             }
         }
     });
 
-    // Gráfico: todas as potências
-    const ctxPotencias = document.getElementById('potenciasChart').getContext('2d');
+    const ctxPotencias = document.getElementById("potenciasChart").getContext("2d");
     let potenciasChart = new Chart(ctxPotencias, {
-        type: 'bar',
+        type: "bar",
         data: {
             labels: POTENCIAS.map(p => p.label),
             datasets: [
                 {
-                    label: isMobile() ? 'Convencional' : 'Convencional (On/Off)',
+                    label: isMobile() ? "Convencional" : "Convencional (On/Off)",
                     data: [0, 0, 0, 0],
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                    borderColor: 'rgb(220, 38, 38)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    backgroundColor: "#FF8C69",
+                    borderWidth: 0,
+                    borderRadius: 0
                 },
                 {
-                    label: isMobile() ? 'Inverter' : 'Inverter (até 50% mais econômico)',
+                    label: isMobile() ? "Inverter" : "Inverter (até 50% mais econômico)",
                     data: [0, 0, 0, 0],
-                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                    borderColor: 'rgb(22, 163, 74)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    backgroundColor: "#1A3C2B",
+                    borderWidth: 0,
+                    borderRadius: 0
                 },
                 {
-                    label: isMobile() ? 'ESP32' : 'ESP32 (30 dias)',
+                    label: isMobile() ? "ESP32" : "ESP32 (30 dias)",
                     data: [0, 0, 0, 0],
-                    backgroundColor: 'rgba(99, 102, 241, 0.7)',
-                    borderColor: 'rgb(79, 70, 229)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    backgroundColor: "#F4D35E",
+                    borderWidth: 0,
+                    borderRadius: 0
                 }
             ]
         },
@@ -604,17 +2384,20 @@
                 ...chartOptions.plugins,
                 legend: {
                     display: true,
-                    position: isMobile() ? 'bottom' : 'top',
+                    position: isMobile() ? "bottom" : "top",
                     labels: {
-                        boxWidth: 12,
-                        font: { size: isMobile() ? 10 : 12 },
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        color: GRID,
+                        font: tickFont(isMobile() ? 10 : 11),
                         padding: isMobile() ? 8 : 12
                     }
                 },
                 title: {
                     display: true,
-                    text: isMobile() ? 'Custo por Potência' : 'Custo Mensal por Potência do Aparelho',
-                    font: { size: isMobile() ? 13 : 16 }
+                    text: isMobile() ? "Custo por potência" : "Custo mensal por potência do aparelho",
+                    font: tickFont(isMobile() ? 11 : 12),
+                    color: FOREST
                 }
             }
         }
@@ -623,30 +2406,32 @@
     function atualizarLayoutGraficos() {
         const mobile = isMobile();
         comparativoChart.data.labels = labelsComparativo();
-        comparativoChart.options.plugins.title.text = mobile ? 'Convencional vs Inverter' : 'Comparativo: Convencional vs Inverter';
-        comparativoChart.options.plugins.title.font.size = mobile ? 13 : 16;
+        comparativoChart.options.plugins.title.text = mobile ? "Convencional vs Inverter" : "Comparativo: convencional vs Inverter";
+        comparativoChart.options.plugins.title.font = tickFont(mobile ? 11 : 12);
+        comparativoChart.options.plugins.title.color = FOREST;
         comparativoChart.options.scales.x.ticks.maxRotation = mobile ? 45 : 0;
         comparativoChart.options.scales.x.ticks.minRotation = mobile ? 30 : 0;
-        comparativoChart.options.scales.x.ticks.font.size = mobile ? 9 : 12;
-        comparativoChart.options.scales.y.ticks.font.size = mobile ? 10 : 12;
-        comparativoChart.update('none');
+        comparativoChart.options.scales.x.ticks.font = tickFont(mobile ? 9 : 11);
+        comparativoChart.options.scales.y.ticks.font = tickFont(mobile ? 10 : 11);
+        comparativoChart.update("none");
 
-        potenciasChart.data.datasets[0].label = mobile ? 'Convencional' : 'Convencional (On/Off)';
-        potenciasChart.data.datasets[1].label = mobile ? 'Inverter' : 'Inverter (até 50% mais econômico)';
-        potenciasChart.data.datasets[2].label = mobile ? 'ESP32' : 'ESP32 (30 dias)';
-        potenciasChart.options.plugins.legend.position = mobile ? 'bottom' : 'top';
-        potenciasChart.options.plugins.legend.labels.font.size = mobile ? 10 : 12;
-        potenciasChart.options.plugins.title.text = mobile ? 'Custo por Potência' : 'Custo Mensal por Potência do Aparelho';
-        potenciasChart.options.plugins.title.font.size = mobile ? 13 : 16;
+        potenciasChart.data.datasets[0].label = mobile ? "Convencional" : "Convencional (On/Off)";
+        potenciasChart.data.datasets[1].label = mobile ? "Inverter" : "Inverter (até 50% mais econômico)";
+        potenciasChart.data.datasets[2].label = mobile ? "ESP32" : "ESP32 (30 dias)";
+        potenciasChart.options.plugins.legend.position = mobile ? "bottom" : "top";
+        potenciasChart.options.plugins.legend.labels.font = tickFont(mobile ? 10 : 11);
+        potenciasChart.options.plugins.title.text = mobile ? "Custo por potência" : "Custo mensal por potência do aparelho";
+        potenciasChart.options.plugins.title.font = tickFont(mobile ? 11 : 12);
+        potenciasChart.options.plugins.title.color = FOREST;
         potenciasChart.options.scales.x.ticks.maxRotation = mobile ? 45 : 0;
         potenciasChart.options.scales.x.ticks.minRotation = mobile ? 30 : 0;
-        potenciasChart.options.scales.x.ticks.font.size = mobile ? 9 : 12;
-        potenciasChart.options.scales.y.ticks.font.size = mobile ? 10 : 12;
-        potenciasChart.update('none');
+        potenciasChart.options.scales.x.ticks.font = tickFont(mobile ? 9 : 11);
+        potenciasChart.options.scales.y.ticks.font = tickFont(mobile ? 10 : 11);
+        potenciasChart.update("none");
     }
 
     let resizeTimer;
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(atualizarLayoutGraficos, 150);
     });
@@ -660,21 +2445,20 @@
     }
 
     function formatarMoeda(valor) {
-        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
 
     function atualizarTabelaEsp32(tarifa, dias) {
-        const tbody = document.getElementById('esp32TableBody');
-        tbody.innerHTML = '';
+        const tbody = document.getElementById("esp32TableBody");
+        tbody.innerHTML = "";
 
         for (let qtd = 1; qtd <= 8; qtd++) {
             const kwhMensal = ESP32_KW * ESP32_HORAS_DIA * dias * qtd;
             const custoMensal = kwhMensal * tarifa;
-
-            const tr = document.createElement('tr');
+            const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td><strong>${qtd} ${qtd === 1 ? 'Aparelho' : 'Aparelhos'}</strong></td>
-                <td>${kwhMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh</td>
+                <td><strong>${qtd} ${qtd === 1 ? "aparelho" : "aparelhos"}</strong></td>
+                <td>${kwhMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh</td>
                 <td>${formatarMoeda(custoMensal)}</td>
             `;
             tbody.appendChild(tr);
@@ -683,34 +2467,34 @@
 
     function atualizarTabelaEconomia(tbodyId, linhas) {
         const tbody = document.getElementById(tbodyId);
-        tbody.innerHTML = '';
+        tbody.innerHTML = "";
 
         linhas.forEach(({ tipo, custoAc, custoEsp32 }) => {
             const economizado = custoAc - custoEsp32;
-            const tr = document.createElement('tr');
+            const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td><strong>${tipo}</strong></td>
                 <td>${formatarMoeda(custoAc)}</td>
                 <td>${formatarMoeda(custoEsp32)}</td>
-                <td>${formatarMoeda(economizado)}</td>
+                <td class="num-save">${formatarMoeda(economizado)}</td>
             `;
             tbody.appendChild(tr);
         });
     }
 
     function calcular() {
-        const tarifa = parseFloat(document.getElementById('tarifa').value) || 0;
-        const kwMedia = parseFloat(document.getElementById('btus').value) || 0;
-        const horas = parseFloat(document.getElementById('horas').value) || 0;
-        const quantidade = parseInt(document.getElementById('quantidade').value) || 0;
-        const dias = parseInt(document.getElementById('dias').value) || 30;
+        const tarifa = parseFloat(document.getElementById("tarifa").value) || 0;
+        const kwMedia = parseFloat(document.getElementById("btus").value) || 0;
+        const horas = parseFloat(document.getElementById("horas").value) || 0;
+        const quantidade = parseInt(document.getElementById("quantidade").value, 10) || 0;
+        const dias = parseInt(document.getElementById("dias").value, 10) || 30;
 
         const custoMensalConv = calcularCustoMensal(kwMedia, horas, dias, tarifa, quantidade);
         const custoMensalInv = custoMensalConv * 0.50;
         const custoEsp32 = calcularCustoEsp32(tarifa, quantidade);
 
-        document.getElementById('resultadoValor').textContent = custoMensalConv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('resultadoDias').textContent = dias;
+        document.getElementById("resultadoValor").textContent = custoMensalConv.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById("resultadoDias").textContent = dias;
 
         comparativoChart.data.datasets[0].data = [custoMensalConv, custoMensalInv, custoEsp32];
         comparativoChart.update();
@@ -724,31 +2508,33 @@
         potenciasChart.data.datasets[2].data = custosEsp32;
         potenciasChart.update();
 
-        const btuLabel = document.getElementById('btus').selectedOptions[0].text;
-        atualizarTabelaEconomia('comparativoEconomiaBody', [
+        const btuLabel = document.getElementById("btus").selectedOptions[0].text;
+        atualizarTabelaEconomia("comparativoEconomiaBody", [
             { tipo: `${btuLabel} — Convencional (On/Off)`, custoAc: custoMensalConv, custoEsp32 },
             { tipo: `${btuLabel} — Tecnologia Inverter`, custoAc: custoMensalInv, custoEsp32 }
         ]);
 
-        const linhasPotencias = POTENCIAS.map((p, i) => ({
+        atualizarTabelaEconomia("potenciasEconomiaBody", POTENCIAS.map((p, i) => ({
             tipo: `${p.label} — Convencional (On/Off)`,
             custoAc: custosConv[i],
             custoEsp32
-        }));
-        atualizarTabelaEconomia('potenciasEconomiaBody', linhasPotencias);
+        })));
 
         atualizarTabelaEsp32(tarifa, dias);
     }
 
-    // Adicionar Event Listeners para atualizar automaticamente ao mudar qualquer input
-    document.getElementById('tarifa').addEventListener('input', calcular);
-    document.getElementById('btus').addEventListener('change', calcular);
-    document.getElementById('horas').addEventListener('input', calcular);
-    document.getElementById('quantidade').addEventListener('input', calcular);
-    document.getElementById('dias').addEventListener('input', calcular);
+    document.querySelector(".tech-form").addEventListener("submit", (event) => event.preventDefault());
 
-    // Executar cálculo inicial ao carregar a página
-    window.onload = calcular;
+    document.getElementById("tarifa").addEventListener("input", calcular);
+    document.getElementById("btus").addEventListener("change", calcular);
+    document.getElementById("horas").addEventListener("input", calcular);
+    document.getElementById("quantidade").addEventListener("input", calcular);
+    document.getElementById("dias").addEventListener("input", calcular);
+
+    calcular();
+
+    const inicial = location.hash.replace("#", "");
+    showView(views[inicial] ? inicial : "gasto", false);
 </script>
 
 </body>
