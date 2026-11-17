@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1A3C2B">
-    <meta name="description" content="Relatório de consumo de ar-condicionado da UESC, detalhes do firmware ESP32 e registro de construção do PEI III.">
+    <meta name="description" content="Relatório de consumo de ar-condicionado da UESC, detalhes do firmware ESP32, registro de construção e autores do PEI III.">
     <title>Gasto UESC · PEI III</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,13 +158,15 @@
         }
 
         html[data-start="codigo"] .nav [data-view="gasto"].is-active,
-        html[data-start="construcao"] .nav [data-view="gasto"].is-active {
+        html[data-start="construcao"] .nav [data-view="gasto"].is-active,
+        html[data-start="sobre"] .nav [data-view="gasto"].is-active {
             color: var(--grid);
             border-bottom-color: transparent;
         }
 
         html[data-start="codigo"] .nav [data-view="codigo"],
-        html[data-start="construcao"] .nav [data-view="construcao"] {
+        html[data-start="construcao"] .nav [data-view="construcao"],
+        html[data-start="sobre"] .nav [data-view="sobre"] {
             color: var(--forest);
             border-bottom-color: var(--forest);
         }
@@ -217,10 +219,12 @@
         .view[hidden] { display: none !important; }
 
         html[data-start="codigo"] #view-gasto,
-        html[data-start="construcao"] #view-gasto { display: none !important; }
+        html[data-start="construcao"] #view-gasto,
+        html[data-start="sobre"] #view-gasto { display: none !important; }
 
         html[data-start="codigo"] #view-codigo,
-        html[data-start="construcao"] #view-construcao { display: block !important; }
+        html[data-start="construcao"] #view-construcao,
+        html[data-start="sobre"] #view-sobre { display: block !important; }
 
         .hero {
             display: grid;
@@ -293,7 +297,7 @@
 
         .wireframe {
             position: relative;
-            width: min(100%, 420px);
+            width: min(100%, 380px);
             aspect-ratio: 1;
             justify-self: end;
             border: 1px solid var(--line-strong);
@@ -307,17 +311,32 @@
             height: 100%;
         }
 
-        .blend-plate {
-            position: absolute;
-            inset: 0;
-            mix-blend-mode: luminosity;
-            opacity: 0.9;
-            transition: opacity 180ms ease-out;
+        .wireframe-sheet {
+            overflow: visible;
+            background: transparent;
+            border: 0;
         }
 
-        .wireframe:hover .blend-plate {
-            mix-blend-mode: normal;
-            opacity: 1;
+        .wireframe-sheet img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            transform-origin: center;
+            animation: board-float 6s ease-in-out infinite;
+        }
+
+        @keyframes board-float {
+            0%, 100% {
+                transform: translateY(8px) rotate(-1.6deg);
+                filter: drop-shadow(0 16px 10px rgba(26, 60, 43, 0.2)) drop-shadow(0 0 0 rgba(158, 255, 191, 0));
+            }
+            50% {
+                transform: translateY(-14px) rotate(1.6deg);
+                filter: drop-shadow(0 28px 16px rgba(26, 60, 43, 0.08)) drop-shadow(0 0 18px rgba(158, 255, 191, 0.7));
+            }
         }
 
         .topology {
@@ -501,6 +520,8 @@
             background: var(--paper);
             border-left: 2px solid var(--coral);
         }
+
+        .bento.thirds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
         .bento li.accent-mint { border-left-color: var(--mint); }
         .bento li.accent-gold { border-left-color: var(--gold); }
@@ -1020,6 +1041,61 @@
             height: auto;
         }
 
+        .authors {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1px;
+            margin: 22px 0 0;
+            padding: 0;
+            list-style: none;
+            background: var(--gap);
+            border: 1px solid var(--gap);
+        }
+
+        .authors li {
+            display: grid;
+            grid-template-columns: 168px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+            min-width: 0;
+            padding: 20px;
+            background: var(--paper);
+        }
+
+        .authors figure {
+            margin: 0;
+            aspect-ratio: 4 / 5;
+            overflow: hidden;
+            background: #f4f1df;
+            border: 1px solid var(--line);
+        }
+
+        .authors img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 18%;
+        }
+
+        .authors h3 {
+            margin: 0 0 8px;
+            font-size: clamp(22px, 2vw, 28px);
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+        }
+
+        .authors p { margin: 0 0 12px; }
+
+        .author-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .author-links .btn { text-decoration: none; }
+
         .ide { padding: 28px 24px 22px; }
 
         .ide p {
@@ -1145,7 +1221,8 @@
             .part,
             .upload-bar span,
             .ide-line,
-            .scanline { animation: none; }
+            .scanline,
+            .wireframe-sheet img { animation: none; }
 
             .wire { stroke-dashoffset: 0; }
             .ir-beam,
@@ -1153,6 +1230,10 @@
             .ide-line { opacity: 1; transform: none; }
             .upload-bar span { width: 100%; }
             .scanline { display: none; }
+            .wireframe-sheet img {
+                transform: none;
+                filter: drop-shadow(0 16px 12px rgba(26, 60, 43, 0.16));
+            }
         }
 
         @media (max-width: 1040px) {
@@ -1190,6 +1271,8 @@
             .hero,
             .split,
             .bento,
+            .bento.thirds,
+            .authors,
             .build-grid { grid-template-columns: minmax(0, 1fr); }
 
             .diy { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -1199,7 +1282,7 @@
             .mono-card,
             .case-frame { justify-self: stretch; width: 100%; max-width: none; }
 
-            .wireframe { max-width: 420px; }
+            .wireframe { max-width: 380px; }
 
             .grid-form { grid-template-columns: 1fr; }
             .grid-form .input-group:last-child { grid-column: auto; }
@@ -1208,6 +1291,14 @@
         @media (max-width: 720px) {
             .shell { width: min(1180px, calc(100% - 28px)); }
 
+            .nav { gap: 0; }
+
+            .nav button {
+                padding: 8px 6px 7px;
+                font-size: 9px;
+                letter-spacing: 0.04em;
+            }
+
             .hero { padding: 36px 0 32px; gap: 28px; }
 
             h1 { font-size: clamp(40px, 12vw, 56px); }
@@ -1215,9 +1306,14 @@
             .block .shell { padding-block: 36px 32px; }
 
             .bento li,
+            .authors li,
             .card,
             .tech-form,
             .results { padding: 20px; }
+
+            .authors li { grid-template-columns: minmax(0, 1fr); }
+
+            .authors figure { max-height: 360px; }
 
             .diy { grid-template-columns: minmax(0, 1fr); }
 
@@ -1245,7 +1341,7 @@
     <script>
         (function () {
             var view = location.hash.replace("#", "");
-            if (view === "codigo" || view === "construcao") {
+            if (view === "codigo" || view === "construcao" || view === "sobre") {
                 document.documentElement.setAttribute("data-start", view);
             }
         })();
@@ -1268,6 +1364,7 @@
             <button type="button" data-view="gasto" class="is-active" aria-current="page">01. Gasto</button>
             <button type="button" data-view="codigo" aria-current="false">02. Código</button>
             <button type="button" data-view="construcao" aria-current="false">03. Construção</button>
+            <button type="button" data-view="sobre" aria-current="false">04. Sobre</button>
         </nav>
         <div class="topbar-actions">
             <button type="button" class="btn btn-ghost" data-view="codigo">Firmware</button>
@@ -1285,23 +1382,8 @@
                     <h1 id="titulo-gasto">Gasto com ar-condicionado na UESC</h1>
                     <p class="hero-kicker">Estimativa mensal para aparelhos split na Bahia, com comparativo entre o modelo convencional, a tecnologia Inverter e o consumo do ESP32 usado no monitoramento.</p>
                 </div>
-                <div class="wireframe" aria-hidden="true">
-                    <div class="blend-plate">
-                        <svg viewBox="0 0 360 360">
-                            <rect x="188" y="36" width="132" height="86" fill="#1A3C2B"/>
-                            <rect x="36" y="214" width="168" height="78" fill="#FF8C69"/>
-                            <rect x="214" y="228" width="104" height="64" fill="#F4D35E"/>
-                            <rect x="48" y="78" width="46" height="112" fill="#9EFFBF"/>
-                        </svg>
-                    </div>
-                    <svg viewBox="0 0 360 360">
-                        <circle cx="176" cy="188" r="96" fill="none" stroke="#1A3C2B" stroke-dasharray="3 4"/>
-                        <circle cx="176" cy="188" r="7" fill="#1A3C2B"/>
-                        <path d="M176 92v192M80 188h192" stroke="#3A3A38" stroke-opacity="0.35"/>
-                        <rect x="24" y="24" width="92" height="40" fill="none" stroke="#3A3A38" stroke-opacity="0.45"/>
-                        <path d="M24 24h46" stroke="#FF8C69"/>
-                        <rect x="250" y="292" width="78" height="28" fill="none" stroke="#3A3A38" stroke-opacity="0.45"/>
-                    </svg>
+                <div class="wireframe wireframe-sheet">
+                    <img src="esp32.webp" alt="Placa ESP32 DevKit V1 vista de cima, com módulo ESP-WROOM-32, conector micro-USB e botões EN e BOOT.">
                 </div>
             </header>
         </div>
@@ -2174,6 +2256,79 @@ portal   fortigate</pre>
             </div>
         </section>
     </section>
+
+    <section id="view-sobre" class="view" hidden aria-labelledby="titulo-sobre">
+        <div class="shell">
+            <header class="hero">
+                <div>
+                    <p class="status-badge"><span></span>Equipe · UESC</p>
+                    <h1 id="titulo-sobre">Sobre</h1>
+                    <p class="hero-kicker">Iniciativa para economizar energia elétrica com componentes baratos: um ESP32, uma bateria, um LED infravermelho e um resistor no lugar de um equipamento caro.</p>
+                </div>
+                <div class="wireframe wireframe-sheet">
+                    <img src="esp32.webp" alt="Placa ESP32 DevKit V1 vista de cima, com módulo ESP-WROOM-32, conector micro-USB e botões EN e BOOT.">
+                </div>
+            </header>
+        </div>
+
+        <section class="block" aria-labelledby="o-projeto">
+            <div class="shell">
+                <h2 id="o-projeto">O projeto</h2>
+                <p>O PEI III parte de uma ideia simples: o ar-condicionado da sala continua o mesmo, e um conjunto pequeno de peças baratas passa a desligá-lo quando ele não precisa ficar ligado. A placa é um ESP32. A energia vem de uma célula 18650. O comando sai por um LED infravermelho e um resistor de 10 Ω, dentro de uma case impressa.</p>
+                <p>Essas peças se encontram em loja comum e cabem numa montagem que outra pessoa pode repetir. O módulo fica na rede o mês inteiro e consome uma fração do que o split gasta. O relatório estima esse custo na Bahia, o código mostra o firmware do controle TCL e a construção registra cada passo da montagem.</p>
+                <ul class="bento stats thirds">
+                    <li>
+                        <p class="cell-label">01 · Energia</p>
+                        <strong>Desligar o split sem trocar o aparelho</strong>
+                    </li>
+                    <li class="accent-mint">
+                        <p class="cell-label">02 · Custo</p>
+                        <strong>Componentes baratos e fáceis de achar</strong>
+                    </li>
+                    <li class="accent-gold">
+                        <p class="cell-label">03 · Onde</p>
+                        <strong>Ciência da Computação · UESC</strong>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="block" aria-labelledby="autores">
+            <div class="shell">
+                <h2 id="autores">Autores</h2>
+                <p>Antonio Henrique Oliveira Santos desenvolveu o trabalho no bacharelado em Ciência da Computação. Jorge Lima de Oliveira Filho, doutor e professor do curso na UESC, orientou o projeto.</p>
+                <ul class="authors">
+                    <li>
+                        <figure>
+                            <img src="Antonio_Henrique.jpg" alt="Antonio Henrique Oliveira Santos em pé, de camisa lilás, apresentando diante de um quadro branco.">
+                        </figure>
+                        <div>
+                            <p class="cell-label">01 · Autor</p>
+                            <h3>Antonio Henrique Oliveira Santos</h3>
+                            <p>Bacharelando em Ciência da Computação. Autor deste PEI III.</p>
+                            <div class="author-links">
+                                <a class="btn btn-ghost" href="https://github.com/Antonio-HOS" target="_blank" rel="noopener noreferrer">GitHub</a>
+                                <a class="btn btn-solid" href="tel:+5573999366330">73 99936-6330</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <figure>
+                            <img src="jorge_lima.jpeg" alt="Retrato de Jorge Lima de Oliveira Filho, de óculos e camiseta preta.">
+                        </figure>
+                        <div>
+                            <p class="cell-label">02 · Orientador</p>
+                            <h3>Jorge Lima de Oliveira Filho</h3>
+                            <p>Doutor e professor do curso de Ciência da Computação da UESC. Orientador do trabalho.</p>
+                            <div class="author-links">
+                                <a class="btn btn-ghost" href="https://www.escavador.com/sobre/10736670/jorge-otavio-oliveira-lima-filho" target="_blank" rel="noopener noreferrer">Currículo no Escavador</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </section>
 </main>
 
 <footer class="site-footer">
@@ -2187,13 +2342,15 @@ portal   fortigate</pre>
     const TITULOS = {
         gasto: "Gasto UESC · PEI III",
         codigo: "Detalhes do código · PEI III",
-        construcao: "Construção · PEI III"
+        construcao: "Construção · PEI III",
+        sobre: "Sobre · PEI III"
     };
 
     const views = {
         gasto: document.getElementById("view-gasto"),
         codigo: document.getElementById("view-codigo"),
-        construcao: document.getElementById("view-construcao")
+        construcao: document.getElementById("view-construcao"),
+        sobre: document.getElementById("view-sobre")
     };
 
     function showView(name, updateHash, keepPosition) {
